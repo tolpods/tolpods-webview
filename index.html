@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TOLPOD - a private place to rest, anywhere</title>
+  <meta name="description" content="TOLPOD is a wheeled rest pod with a reclining massage chair, pull-out desks, storage, vending and more. Explore it in 3D.">
+  <link rel="stylesheet" href="css/style.css">
+  <script type="importmap">
+  { "imports": { "three": "./js/vendor/three.module.js", "three/addons/": "./js/vendor/addons/" } }
+  </script>
+</head>
+<body>
+  <header class="nav">
+    <a class="brand" href="#top">TOLPOD</a>
+    <nav>
+      <a href="#features">Features</a>
+      <a href="#dimensions">Dimensions</a>
+      <a class="btn primary" href="explorer.html">View the pod</a>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="copy">
+        <h1>A private place to rest, <em>anywhere</em>.</h1>
+        <p class="lead">TOLPOD is a self-contained rest pod on wheels, built for malls, airports and busy public spaces. Step in and you get a massage chair that reclines into a bed, a pull-out desk, a TV, storage, pillows and blankets, and a smart minibar. On the public side it doubles as vending, advertising and an items-for-sale wall.</p>
+        <div class="actions">
+          <a class="btn primary" href="explorer.html">View the pod &rarr;</a>
+          <a class="btn" href="#features">See what's inside</a>
+        </div>
+        <ul class="stats">
+          <li><b>90&Prime; &times; 144&Prime;</b><span>footprint</span></li>
+          <li><b>75&Prime; / 85&Prime;</b><span>flat bed / with extension</span></li>
+          <li><b>12 + 5</b><span>inside / public-side features</span></li>
+        </ul>
+      </div>
+      <div class="viewer" id="viewer">
+        <img class="poster" src="assets/hero.jpg" alt="TOLPOD rest pod" onerror="this.remove()">
+        <canvas id="c" aria-label="Interactive 3D model of the TOLPOD, drag to rotate"></canvas>
+        <div class="viewer-ui">
+          <span>Drag to rotate 360&deg; &middot; scroll or pinch to zoom</span>
+          <button class="btn" id="roofBtn" type="button">Show roof</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="block" id="features">
+      <h2>Everything you need, in 90 by 144 inches</h2>
+      <p class="sub">Every part is drawn to the real dimensions from the product design sheet, and you can open, move and recline them in the explorer.</p>
+      <div class="features" id="featureGrid"></div>
+    </section>
+
+    <section class="block" id="dimensions">
+      <h2>Dimensions</h2>
+      <p class="sub">All sizes in inches, taken from the design sheet.</p>
+      <table class="dims" id="dimTable"></table>
+    </section>
+
+    <section class="block">
+      <div class="cta-band">
+        <h2>Walk through it yourself</h2>
+        <p class="sub" style="margin:0 auto 1.2rem">Orbit the whole pod, walk inside, open the storage, pull out the desk, and recline the chair into a bed.</p>
+        <a class="btn primary" href="explorer.html">View the pod &rarr;</a>
+      </div>
+    </section>
+  </main>
+  <footer>TOLPOD &middot; interactive 3D preview &middot; dimensions from the product design sheet</footer>
+
+  <script type="module" src="js/landing.js"></script>
+</body>
+</html>
