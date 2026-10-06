@@ -3,6 +3,8 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { buildPod, planToWorld, groundZ } from './pod.js';
 import { createStage, addGround, webglOK, makeTimer } from './stage.js';
 import { step as walkStep } from './walk.js';
+import { buildAirport } from './airport.js';
+import { markerVisible } from './occlude.js';
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
@@ -12,8 +14,17 @@ const canvas = $('#c');
 const { renderer, scene, fit, mobile } = createStage(canvas);
 const pod = buildPod();
 scene.add(pod.root);
-addGround(scene, pod.M.ground);
-const camera = new THREE.PerspectiveCamera(50, 1, 1, 6000);
+const ground = addGround(scene, pod.M.ground);
+const camera = new THREE.PerspectiveCamera(50, 1, 1, 20000);
+
+// ---------------------------------------------------------------- environment: airport terminal (or the plain pavers)
+const airport = buildAirport();
+scene.add(airport.group);
+const plainFog = scene.fog, airportFog = new THREE.Fog(0xd9d5cc, 1100, 5200);
+let envOn = true;
+function setEnv(on) { envOn = on; airport.group.visible = on; ground.visible = !on; scene.fog = on ? airportFog : plainFog; }
+setEnv(true);
+let roofOn = true;
 const touch = matchMedia('(pointer: coarse)').matches;
 const ease = (t) => t * t * (3 - 2 * t);
 const W = (x, y, z) => planToWorld(x, y, z);
@@ -53,7 +64,7 @@ function updateWalker(dt) {
   const sp = 62 * (keys.has('shift') ? 1.9 : 1) * dt;
   const dx = (-Math.sin(walker.yaw) * f + Math.cos(walker.yaw) * r) * sp;
   const dy = (Math.cos(walker.yaw) * f + Math.sin(walker.yaw) * r) * sp;
-  walkStep(walker, dx, dy, 8, pod.obstacles());
+  walkStep(walker, dx, dy, 8, pod.obstacles().concat(envOn ? airport.obstacles : []));
   walker.x = Math.max(-1200, Math.min(1300, walker.x)); walker.y = Math.max(-1200, Math.min(1300, walker.y));
   walker.z += (groundZ(walker.x, walker.y) - walker.z) * Math.min(1, dt * 8);
   camera.position.copy(W(walker.x, walker.y, walker.z + walker.eye));
@@ -141,23 +152,23 @@ function flyTo(key) {
 
 const TOURS = {
   outside: [
-    { pos: [38.5, 330, 80], look: [38.5, 144, 50], move: 3, dwell: 3.4, title: 'The entrance', text: 'A 30" pathway into the pod. Free storage and the coat station are on the left, the fridge block and premium storage on the right.' },
-    { pos: [285, 92, 75], look: [90, 92, 45], move: 5, dwell: 3.4, title: 'Items for sale (17)', text: 'The right wall is a 6.5" display wall for items for sale, visible from outside.' },
-    { pos: [160, -120, 75], look: [76, 0, 55], move: 5, dwell: 3.4, title: 'Snack vending (12)', text: '15" x 48" x 92". Five rows plus a 20" drop bay for your purchase.' },
+    { pos: [38.5, 330, 80], look: [38.5, 144, 50], move: 3, dwell: 3.4, title: 'The entrance', text: 'A 30″ pathway into the pod. Free storage and the coat station are on the left, the fridge block and premium storage on the right.' },
+    { pos: [285, 92, 75], look: [90, 92, 45], move: 5, dwell: 3.4, title: 'Items for sale (17)', text: 'The right wall is a 6.5″ display wall for items for sale, visible from outside.' },
+    { pos: [160, -120, 75], look: [76, 0, 55], move: 5, dwell: 3.4, title: 'Snack vending (12)', text: '15″ × 48″ × 92″. Five rows plus a 20″ drop bay for your purchase.' },
     { pos: [45, -150, 80], look: [55, 0, 55], move: 4, dwell: 3.4, title: 'Touch screen (13) and cold storage (11)', text: 'An interactive screen for ads and content, with refrigerated stock behind it.' },
-    { pos: [-20, -130, 75], look: [23, 0, 55], move: 4, dwell: 3.4, title: 'Refrigerated vending (14)', text: '39" x 48" x 92". Cold drinks and snacks, with complimentary and paid items. It also opens to the inside of the pod.' },
+    { pos: [-20, -130, 75], look: [23, 0, 55], move: 4, dwell: 3.4, title: 'Refrigerated vending (14)', text: '39″ × 48″ × 92″. Cold drinks and snacks, with complimentary and paid items. It also opens to the inside of the pod.' },
     { pos: [-195, 72, 75], look: [0, 72, 45], move: 5, dwell: 3.4, title: 'Ad screen and free items', text: 'The left wall carries a regular TV for ads (16) and a free-items shelf (15).' },
     { pos: [-110, 230, 85], look: [30, 144, 50], move: 4, dwell: 2.4, title: 'Back to the entrance', text: 'That is the public side of TOLPOD. Try the inside tour next.' },
   ],
   inside: [
-    { pos: [38.5, 190, 66], look: [38.5, 140, 52], move: 2.5, dwell: 2.4, title: 'Stepping in', text: 'The ramp leads to a 30" wide entrance. Two optional glass layers can close it for privacy.' },
-    { pos: [38.5, 130, 62], look: [40, 112, 48], move: 4, dwell: 2.8, title: 'The pathway', text: '28" long, between the coat station and the fridge block. The TV rail runs overhead.' },
-    { pos: [38.5, 127, 62], look: [19, 132, 50], move: 2, dwell: 2.8, title: 'Coat station (4)', text: '8" x 28" x 60" with hangers, hooks and a full-length mirror.' },
-    { pos: [38.5, 127, 62], look: [62, 130, 58], move: 2, dwell: 3, title: 'Fridge, microwave, surprise box (5)', text: 'Mini fridge, microwave, a 12.8" gift compartment for charity donations, and a tall cabinet.' },
-    { pos: [38.5, 112, 62], look: [39.5, 78, 36], move: 3.5, dwell: 3, title: 'The massage chair (1)', text: 'Sit at normal height, or use the recline control to flatten it into a 75" bed.' },
+    { pos: [38.5, 190, 66], look: [38.5, 140, 52], move: 2.5, dwell: 2.4, title: 'Stepping in', text: 'The ramp leads to a 30″ wide entrance. Two optional glass layers can close it for privacy.' },
+    { pos: [38.5, 130, 62], look: [40, 112, 48], move: 4, dwell: 2.8, title: 'The pathway', text: '28″ long, between the coat station and the fridge block. The TV rail runs overhead.' },
+    { pos: [38.5, 127, 62], look: [19, 132, 50], move: 2, dwell: 2.8, title: 'Coat station (4)', text: '8″ × 28″ × 60″ with hangers, hooks and a full-length mirror.' },
+    { pos: [38.5, 127, 62], look: [62, 130, 58], move: 2, dwell: 3, title: 'Fridge, microwave, surprise box (5)', text: 'Mini fridge, microwave, a 12.8″ gift compartment for charity donations, and a tall cabinet.' },
+    { pos: [38.5, 112, 62], look: [39.5, 78, 36], move: 3.5, dwell: 3, title: 'The massage chair (1)', text: 'Sit at normal height, or use the recline control to flatten it into a 75″ bed.' },
     { pos: [38.5, 112, 62], look: [9.5, 95, 40], move: 2.5, dwell: 3, title: 'Pillows & blankets (8)', text: 'Fifteen packets in three divisions, released one at a time from the app.' },
     { pos: [38.5, 110, 62], look: [9.5, 61, 30], move: 2.5, dwell: 3, title: 'Weight-sensor minibar (9)', text: 'A smart shelf with 36 items, and cleaning supplies below.' },
-    { pos: [48, 110, 62], look: [73.5, 84, 28], move: 2.5, dwell: 3, title: 'Smart trash (10)', text: 'Four rotating 10" cans with compactors and a no-touch opening.' },
+    { pos: [48, 110, 62], look: [73.5, 84, 28], move: 2.5, dwell: 3, title: 'Smart trash (10)', text: 'Four rotating 10″ cans with compactors and a no-touch opening.' },
     { pos: [50, 110, 62], look: [75, 108, 50], move: 2.5, dwell: 3, title: 'Premium storage', text: 'A full-height locker for a large suitcase. Try opening it from the Pod controls.' },
   ],
 };
@@ -198,6 +209,19 @@ $$('[data-mode]').forEach((b) => b.addEventListener('click', () => setMode(b.dat
 $$('[data-go]').forEach((b) => b.addEventListener('click', () => flyTo(b.dataset.go)));
 $$('[data-tour]').forEach((b) => b.addEventListener('click', () => startTour(b.dataset.tour)));
 
+// ---------------------------------------------------------------- sidebar (open on desktop, drawer on phones)
+const narrow = matchMedia('(max-width: 800px)');
+const dockToggle = $('#dockToggle');
+function setDock(open) {
+  document.body.classList.toggle('dock-closed', !open);
+  dockToggle.setAttribute('aria-expanded', String(open));
+}
+setDock(!narrow.matches);
+dockToggle.addEventListener('click', () => setDock(document.body.classList.contains('dock-closed')));
+if (narrow.addEventListener) narrow.addEventListener('change', (e) => setDock(!e.matches));
+// on a phone, close the drawer after picking a view / go-to / tour so the 3D view is visible
+$$('[data-mode],[data-go],[data-tour]').forEach((b) => b.addEventListener('click', () => { if (narrow.matches) setDock(false); }));
+
 // ---------------------------------------------------------------- pod controls
 const STATE_WORDS = { premium: ['Closed', 'Open'], free: ['Closed', 'Open'], desk: ['Stowed', 'Out'], tv: ['Stowed', 'Watching'] };
 $$('[data-rig]').forEach((b) => b.addEventListener('click', () => { const msg = pod.api.toggle(b.dataset.rig); if (msg) toast(msg); }));
@@ -224,7 +248,8 @@ addEventListener('pointerup', () => { sliding = false; });
 slider.addEventListener('input', () => { const msg = pod.api.scrub('chair', slider.value / 100); if (msg) { toast(msg); slider.value = 0; } });
 
 const toggler = (id, fn) => { const b = $(id); b.addEventListener('click', () => { const on = !b.classList.contains('on'); b.classList.toggle('on', on); fn(on); }); };
-toggler('#roofBtn', (on) => pod.api.setRoof(on));
+toggler('#roofBtn', (on) => { roofOn = on; pod.api.setRoof(on); });
+toggler('#envBtn', setEnv);
 toggler('#lightBtn', (on) => pod.api.setInteriorLights(on));
 toggler('#personBtn', (on) => pod.api.setPerson(on));
 let labels = true;
@@ -236,7 +261,7 @@ const markerEls = pod.hotspots.map((h) => {
   el.className = 'marker'; el.textContent = h.id; el.title = h.title; el.setAttribute('aria-label', h.title);
   el.addEventListener('click', () => showInfo(h));
   $('#markers').appendChild(el);
-  return { h, el, p: W(...h.pos) };
+  return { h, el, p: W(...h.pos), plan: { x: h.pos[0], y: h.pos[1], z: h.pos[2] } };
 });
 function showInfo(h) {
   $('#infoTitle').textContent = h.title;
@@ -249,10 +274,11 @@ const tmp = new THREE.Vector3();
 function updateMarkers() {
   if (!labels) return;
   const w = canvas.clientWidth, h = canvas.clientHeight, limit = mode === 'walk' ? 230 : 1300;
+  const cam = { x: camera.position.x, y: -camera.position.z, z: camera.position.y };     // camera in plan inches
   for (const m of markerEls) {
     tmp.copy(m.p); const dist = tmp.distanceTo(camera.position);
     tmp.project(camera);
-    const vis = tmp.z < 1 && Math.abs(tmp.x) < 1.05 && Math.abs(tmp.y) < 1.05 && dist < limit;
+    const vis = tmp.z < 1 && Math.abs(tmp.x) < 1.05 && Math.abs(tmp.y) < 1.05 && dist < limit && markerVisible(cam, m.plan, roofOn);   // hidden behind walls / roof
     m.el.style.display = vis ? '' : 'none';
     if (vis) { m.el.style.left = ((tmp.x + 1) / 2) * w + 'px'; m.el.style.top = ((1 - tmp.y) / 2) * h + 'px'; m.el.style.opacity = String(Math.max(0.35, Math.min(1, 1.4 - dist / limit))); }
   }
@@ -270,6 +296,7 @@ const clock = makeTimer();
   if (flight) flight.update(dt);
   else if (mode === 'orbit') controls.update();
   else if (mode === 'walk') updateWalker(dt);
+  if (envOn) airport.update(camera);
   refreshButtons();
   updateMarkers();
   renderer.render(scene, camera);

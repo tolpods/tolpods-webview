@@ -22,7 +22,7 @@ export function createStage(canvas, { alpha = false, shadows = true, sky = true 
   const pm = new THREE.PMREMGenerator(renderer);
   scene.environment = pm.fromScene(new RoomEnvironment(), 0.04).texture;
   scene.environmentIntensity = 0.6;
-  scene.add(new THREE.HemisphereLight(0xcfe3ff, 0x6b5b45, 0.5));
+  scene.add(new THREE.HemisphereLight(0xfff4e6, 0x6b5b45, 0.5));
   const sun = new THREE.DirectionalLight(0xffe2bd, 2.4);          // low sun from the front-right
   sun.position.set(230, 250, -300);
   sun.target.position.set(45, 30, -72);
@@ -34,11 +34,11 @@ export function createStage(canvas, { alpha = false, shadows = true, sky = true 
   if (sky) {
     const c = document.createElement('canvas'); c.width = 4; c.height = 256;
     const g = c.getContext('2d'), gr = g.createLinearGradient(0, 0, 0, 256);
-    gr.addColorStop(0, '#7fa6df'); gr.addColorStop(0.55, '#cfdcec'); gr.addColorStop(1, '#f3e7d3');
+    gr.addColorStop(0, '#f4f1ea'); gr.addColorStop(0.6, '#e9e5dd'); gr.addColorStop(1, '#ded8cc');
     g.fillStyle = gr; g.fillRect(0, 0, 4, 256);
     const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
     scene.background = t;
-    scene.fog = new THREE.Fog(0xe6dfd2, 700, 3200);
+    scene.fog = new THREE.Fog(0xe9e5dd, 650, 2000);       // same greige as the page, so the ground melts into the background
   }
   const fit = (camera) => {
     const w = canvas.clientWidth || canvas.parentElement.clientWidth, h = canvas.clientHeight || canvas.parentElement.clientHeight;
@@ -50,8 +50,8 @@ export function createStage(canvas, { alpha = false, shadows = true, sky = true 
 
 // the pavers under the pod
 export function addGround(scene, material) {
-  material.map.repeat.set(31, 31);
-  const g = new THREE.Mesh(new THREE.CircleGeometry(1500, 64), material);
+  material.map.repeat.set(46, 46);
+  const g = new THREE.Mesh(new THREE.CircleGeometry(2200, 64), material);
   g.rotation.x = -Math.PI / 2; g.position.y = -10; g.receiveShadow = true; g.name = 'ground';
   scene.add(g);
   return g;

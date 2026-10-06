@@ -25,7 +25,7 @@ const ctx = new Proxy({}, { get: (t, k) => (k === 'createImageData' ? (w, h) => 
 const byId = {};
 const page = process.argv[2] || 'explorer';
 const ids = page === 'explorer'
-  ? ['c', 'stage', 'toast', 'hint', 'info', 'infoX', 'infoTitle', 'infoDims', 'infoText', 'caption', 'capTitle', 'capText', 'capPause', 'capNext', 'capStop', 'stick', 'dock', 'recline', 'glassBtn', 'roofBtn', 'lightBtn', 'personBtn', 'labelBtn', 'markers', 'nogl']
+  ? ['c', 'stage', 'toast', 'hint', 'info', 'infoX', 'infoTitle', 'infoDims', 'infoText', 'caption', 'capTitle', 'capText', 'capPause', 'capNext', 'capStop', 'stick', 'dock', 'dockToggle', 'recline', 'glassBtn', 'roofBtn', 'lightBtn', 'personBtn', 'labelBtn', 'envBtn', 'markers', 'nogl']
   : ['c', 'viewer', 'roofBtn', 'featureGrid', 'dimTable'];
 ids.forEach((i) => { byId[i] = el(); });
 if (byId.stick) byId.stick.querySelector = () => el();
@@ -40,7 +40,7 @@ const groups = {
 const select = (s) => (s.startsWith('#') ? byId[s.slice(1)] || el() : s === '.viewer-ui' || s === '.viewer-ui span' ? el() : el());
 const win = new Map();
 Object.assign(globalThis, {
-  document: { addEventListener() {}, removeEventListener() {}, createElement: (t) => (t === 'canvas' ? Object.assign(el(), { getContext: () => ctx }) : el()), getElementById: (i) => byId[i] || el(), querySelector: select, querySelectorAll: (s) => groups[s] || [], hidden: false },
+  document: { body: el(), addEventListener() {}, removeEventListener() {}, createElement: (t) => (t === 'canvas' ? Object.assign(el(), { getContext: () => ctx }) : el()), getElementById: (i) => byId[i] || el(), querySelector: select, querySelectorAll: (s) => groups[s] || [], hidden: false },
   matchMedia: (q) => ({ matches: false }), innerWidth: 1280, innerHeight: 720, devicePixelRatio: 1,
   addEventListener: (t, fn) => { if (!win.has(t)) win.set(t, []); win.get(t).push(fn); },
   ResizeObserver: class { observe() {} }, IntersectionObserver: class { observe() {} },
@@ -56,7 +56,7 @@ const stageStub = `import * as THREE from 'three';
 export const isMobile = () => false; export const webglOK = () => true;
 export function makeTimer() { let last = performance.now(); const start = last; return { getDelta() { const n = performance.now(), d = (n - last) / 1000; last = n; return d; }, get elapsedTime() { return (performance.now() - start) / 1000; } }; }
 export function createStage() { const scene = new THREE.Scene(); const renderer = { render() { renderer.n = (renderer.n || 0) + 1; } }; return { renderer, scene, fit(c) { c.aspect = 16 / 9; c.updateProjectionMatrix(); }, mobile: false }; }
-export function addGround(scene, m) { m.map.repeat.set(31, 31); }`;
+export function addGround(scene, m) { m.map.repeat.set(31, 31); return { visible: true }; }`;
 const loader = `export async function resolve(spec, ctx, next) {
   if (spec === 'three') return { url: 'file://${J}/vendor/three.module.js', shortCircuit: true };
   if (spec.startsWith('three/addons/')) return { url: 'file://${J}/vendor/addons/' + spec.slice(13), shortCircuit: true };
@@ -71,7 +71,7 @@ process.on('uncaughtException', (e) => { console.log('FAIL uncaught:', e.stack);
 if (page === 'landing') {
   await import(pathToFileURL(path.join(J, 'landing.js')).href);
   check('landing built features table', byId.featureGrid.innerHTML.includes('Massage chair'));
-  check('landing built dimensions table', byId.dimTable.innerHTML.includes('90" x 144"'));
+  check('landing built dimensions table', byId.dimTable.innerHTML.includes('90″ × 144″'));
   frames(120);
   check('landing viewer marked ready', byId.viewer.classList.contains('ready'));
   byId.roofBtn.fire('click'); frames(3); check('roof button toggles label', byId.roofBtn.textContent === 'Hide roof');
@@ -82,6 +82,11 @@ await import(pathToFileURL(path.join(J, 'explorer.js')).href);
 frames(5);
 const btn = (grp, k, v) => groups[grp].find((b) => b.dataset[k] === v);
 check('explorer started; hint set', byId.hint.textContent.includes('orbit'));
+check('sidebar starts open', !document.body.classList.contains('dock-closed'));
+byId.dockToggle.fire('click'); check('Controls button collapses the sidebar', document.body.classList.contains('dock-closed'));
+byId.dockToggle.fire('click'); check('Controls button reopens it', !document.body.classList.contains('dock-closed'));
+if (byId.envBtn) byId.envBtn.classList.add('on');          // the real page ships it as class="on"
+byId.envBtn.fire('click'); check('Airport button toggles the environment off', !byId.envBtn.classList.contains('on')); byId.envBtn.fire('click'); check('...and back on', byId.envBtn.classList.contains('on'));
 check('hotspot markers created', byId.markers.children.length >= 16, `(${byId.markers.children.length})`);
 // rig buttons
 for (const r of ['premium', 'free', 'desk', 'tv']) { btn('[data-rig]', 'rig', r).fire('click'); }

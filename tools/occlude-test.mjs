@@ -1,0 +1,17 @@
+import { markerVisible as v } from '../js/occlude.js';
+import { HOTSPOTS } from '../js/spec.js';
+let bad = 0; const t = (name, got, want) => { const ok = got === want; if (!ok) bad++; console.log((ok ? 'ok   ' : 'FAIL ') + name + `  (got ${got})`); };
+const hs = Object.fromEntries(HOTSPOTS.map((h) => [h.id, { x: h.pos[0], y: h.pos[1], z: h.pos[2] }]));
+const front = { x: 250, y: 330, z: 210 }, back = { x: 45, y: -330, z: 210 }, above = { x: 45, y: 72, z: 600 }, right = { x: 330, y: 92, z: 80 };
+t('roof ON, from the front: chair marker hidden', v(front, hs['1'], true), false);
+t('roof ON, from above: chair marker hidden', v(above, hs['1'], true), false);
+t('roof OFF, from above: chair marker visible', v(above, hs['1'], false), true);
+t('roof OFF, from a low side angle: chair marker hidden by the wall', v({ x: 330, y: 72, z: 30 }, hs['1'], false), false);
+t('back vending marker (14) hidden when looking from the front', v(front, hs['14'], true), false);
+t('back vending marker (14) visible from behind', v(back, hs['14'], true), true);
+t('items-for-sale marker (17) visible from the right', v(right, hs['17'], true), true);
+t('items-for-sale marker (17) hidden from the left', v({ x: -250, y: 92, z: 80 }, hs['17'], true), false);
+t('inside the pod: chair marker visible', v({ x: 38.5, y: 125, z: 62 }, hs['1'], true), true);
+t('inside the pod: marker on an outside wall hidden', v({ x: 38.5, y: 125, z: 62 }, hs['17'], true), false);
+t('from above, outside marker 15 (left wall) visible over the roof edge', v({ x: -120, y: 108, z: 140 }, hs['15'], true), true);
+console.log(bad ? `${bad} FAILED` : 'ALL OCCLUSION TESTS PASSED'); process.exit(bad ? 1 : 0);

@@ -53,6 +53,20 @@ js/vendor/      three.js r186 (MIT licence included)
 tools/verify.mjs  optional: `node tools/verify.mjs` measures the model against the sheet
 ```
 
+## Environment
+
+The explorer places the pod in a procedural airport terminal (`js/airport.js`): polished floor, columns, ceiling with light strips and
+trusses, hanging signs and flight boards, gate seating, planters, and a glass wall onto an apron with a parked jet and boarding bridge.
+Use **Show > Airport** to switch back to the plain pavers. The terminal's ceiling hides automatically when the camera goes above the hall,
+so the Top view shows the pod like a cutaway. Hotspot markers hide when they are behind the pod's walls or roof (`js/occlude.js`).
+
+## Theme and fonts
+
+Colors and fonts live in the `:root` block at the top of `css/style.css` (`--bg`, `--ink`, `--accent`, `--sans`, `--serif`, `--mono`).
+Fonts are self-hosted in `fonts/` (DM Sans, Instrument Serif italic, DM Mono, with IBM Plex Mono as a glyph fallback, all SIL OFL;
+see `fonts/LICENSES.txt`), so the site makes no requests to Google Fonts. The 3D background and fog use the same `#e9e5dd`
+(set in `js/stage.js`).
+
 ## Notes
 
 * Needs a browser with WebGL and ES-module import maps: current Chrome, Edge, Firefox, Safari (16.4+), Android Chrome, iOS Safari.

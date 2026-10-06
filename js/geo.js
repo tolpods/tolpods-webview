@@ -98,12 +98,12 @@ export class Batch {
     if (!this.map.has(mat)) this.map.set(mat, []);
     this.map.get(mat).push(g);
   }
-  flush(parent) {
+  flush(parent, cast = true) {
     for (const [mat, list] of this.map) {
       const merged = mergeGeometries(list, false);
       if (!merged) { console.warn('merge failed for a material'); continue; }
       const m = new THREE.Mesh(merged, mat);
-      m.castShadow = !mat.transparent;
+      m.castShadow = cast && !mat.transparent;
       m.receiveShadow = true;
       parent.add(m);
     }
