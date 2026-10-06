@@ -2,7 +2,7 @@
 
 A static website (no build step) with:
 
-* **index.html** - intro, features, dimensions, and a floating 360-degree 3D pod.
+* **index.html** - intro, features, and a floating 360-degree 3D pod.
 * **explorer.html** - the full model: orbit the whole pod, walk inside and outside, guided tours,
   open/close premium and free storage, pull out the desks, recline the chair into a bed, flip the TV, close the smart glass.
 
@@ -34,14 +34,13 @@ and upload it. The landing page shows it until the live 3D view is ready, and ke
 |---|---|---|
 | Orbit | drag, scroll to zoom | drag, pinch |
 | Walk | WASD / arrows, drag to look, Shift to run, Esc to leave | left stick to move, drag right side to look |
-| Details | click a numbered marker | tap a numbered marker |
 
 ## Files
 
 ```
 index.html, explorer.html
 css/style.css
-js/spec.js      all dimensions, features, hotspot text (edit text here)
+js/spec.js      all dimensions and feature text (edit text here)
 js/mats.js      procedural wood / leather / plaster / glass materials
 js/geo.js       box, extrusion and batching helpers
 js/products.js  bottles, cans, bags etc. (instanced)
@@ -58,7 +57,7 @@ tools/verify.mjs  optional: `node tools/verify.mjs` measures the model against t
 The explorer places the pod in a procedural airport terminal (`js/airport.js`): polished floor, columns, ceiling with light strips and
 trusses, hanging signs and flight boards, gate seating, planters, and a glass wall onto an apron with a parked jet and boarding bridge.
 Use **Show > Airport** to switch back to the plain pavers. The terminal's ceiling hides automatically when the camera goes above the hall,
-so the Top view shows the pod like a cutaway. Hotspot markers hide when they are behind the pod's walls or roof (`js/occlude.js`).
+so the Top view shows the pod like a cutaway.
 
 ## Theme and fonts
 
@@ -72,3 +71,9 @@ see `fonts/LICENSES.txt`), so the site makes no requests to Google Fonts. The 3D
 * Needs a browser with WebGL and ES-module import maps: current Chrome, Edge, Firefox, Safari (16.4+), Android Chrome, iOS Safari.
 * On phones, shadows are switched off and resolution is capped to keep it smooth.
 * VR / WebXR is not included yet (the model is already in real-world proportions, so it can be added later).
+
+## Graphics
+
+* Text on the screens and signs is drawn with the site fonts at the real proportions of each surface (`js/mats.js`, `js/ready.js` waits for the fonts first).
+* Reflections: the terminal is captured once and reflected by glossy surfaces (chair shell, glass, steel).
+* **Glow** button (Controls > Show): soft bloom on LEDs and screens plus 4x anti-aliasing (`js/fx.js`). On by default on desktop, off on phones. If a device cannot do it, the page falls back to plain rendering by itself.

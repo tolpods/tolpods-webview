@@ -55,6 +55,27 @@ function pixelTexture(w, h, fn, { srgb = true, repeat = [1, 1] } = {}) {
   return finish(c, srgb, repeat);
 }
 
+// ---------- fonts and canvas helpers for text / UI textures ----------
+const SANS = '"DM Sans", system-ui, "Segoe UI", sans-serif';
+const SERIF = '"Instrument Serif", Georgia, serif';
+const MONO = '"DM Mono", "IBM Plex Mono", ui-monospace, monospace';
+function rr(g, x, y, w, h, r) {                                   // rounded rectangle path
+  g.beginPath(); g.moveTo(x + r, y); g.lineTo(x + w - r, y); g.quadraticCurveTo(x + w, y, x + w, y + r); g.lineTo(x + w, y + h - r);
+  g.quadraticCurveTo(x + w, y + h, x + w - r, y + h); g.lineTo(x + r, y + h); g.quadraticCurveTo(x, y + h, x, y + h - r); g.lineTo(x, y + r); g.quadraticCurveTo(x, y, x + r, y); g.closePath();
+}
+function spaced(g, px) { try { g.letterSpacing = px + 'px'; } catch (e) { /* older browsers: no letter spacing */ } }
+function fitFont(g, text, weight, family, size, maxW) {          // shrink until the text fits the width
+  let s = size;
+  for (let i = 0; i < 16; i++) {
+    g.font = `${weight} ${Math.round(s)}px ${family}`;
+    const m = g.measureText ? g.measureText(text) : null;
+    if (!m || !m.width || m.width <= maxW) break;
+    s *= 0.92;
+  }
+  return s;
+}
+function uiTex(c) { const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t; }
+
 // ---------- texture recipes ----------
 export const tex = {
   wood(c1, c2, seed = 3, size = 256) {
@@ -107,25 +128,96 @@ export const tex = {
       return [base[0] * k, base[1] * k, base[2] * k];
     }, { srgb: !bump });
   },
-  screen(c1, c2, label, size = 256) {
-    const c = newCanvas(size, size), ctx = c.getContext('2d');
-    const g = ctx.createLinearGradient(0, 0, 0, size);
-    g.addColorStop(0, c1); g.addColorStop(1, c2);
-    ctx.fillStyle = g; ctx.fillRect(0, 0, size, size);
-    ctx.fillStyle = 'rgba(255,255,255,0.14)';
-    for (let i = 0; i < 5; i++) ctx.fillRect(size * 0.08, size * (0.18 + i * 0.15), size * (0.84 - i * 0.07), size * 0.06);
-    if (label) {
-      ctx.fillStyle = 'rgba(255,255,255,0.95)'; ctx.font = `bold ${Math.round(size * 0.12)}px sans-serif`;
-      ctx.textAlign = 'center'; ctx.fillText(label, size / 2, size * 0.1);
+  // ---- text/UI textures: drawn at the real aspect ratio of the surface they go on, with the site's fonts
+  header(title, sub, c1, c2, aspect) {                       // vending-machine header strip
+    const w = 1536, h = Math.round(w / aspect), c = newCanvas(w, h), g = c.getContext('2d');
+    const gr = g.createLinearGradient(0, 0, w, 0); gr.addColorStop(0, c1); gr.addColorStop(1, c2);
+    g.fillStyle = gr; g.fillRect(0, 0, w, h);
+    g.fillStyle = 'rgba(255,255,255,0.10)'; g.fillRect(0, 0, w, h * 0.5);
+    g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(0, h - Math.max(3, h * 0.045), w, Math.max(3, h * 0.045));
+    g.textBaseline = 'middle'; g.fillStyle = '#fffaf0';
+    if (aspect > 5) {                                        // wide: title left, small caption right
+      const fs = fitFont(g, title, '700', SANS, h * 0.5, w * 0.6); spaced(g, fs * 0.08); g.textAlign = 'left'; g.fillText(title, w * 0.04, h * 0.53);
+      g.font = `500 ${Math.round(h * 0.2)}px ${MONO}`; spaced(g, h * 0.03); g.textAlign = 'right'; g.fillStyle = 'rgba(255,250,240,0.85)'; g.fillText(sub, w * 0.96, h * 0.53);
+    } else {                                                 // narrow: title centred, caption underneath
+      const fs = fitFont(g, title, '700', SANS, h * 0.36, w * 0.84); spaced(g, fs * 0.06); g.textAlign = 'center'; g.fillText(title, w / 2, h * 0.42);
+      g.font = `500 ${Math.round(h * 0.1)}px ${MONO}`; spaced(g, h * 0.02); g.fillStyle = 'rgba(255,250,240,0.85)'; g.fillText(sub, w / 2, h * 0.76);
     }
-    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+    spaced(g, 0); return uiTex(c);
   },
-  sign(text, color = '#e0b55a', w = 512, h = 128, bg = null) {
+  kiosk() {                                                  // 13: touch-screen UI, portrait 22.8 x 44.8
+    const w = 512, h = 1008, c = newCanvas(w, h), g = c.getContext('2d');
+    const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#0f1416'); gr.addColorStop(1, '#1d2b2e'); g.fillStyle = gr; g.fillRect(0, 0, w, h);
+    g.textBaseline = 'middle'; g.textAlign = 'left'; g.fillStyle = '#8f9b98'; g.font = `500 22px ${MONO}`; g.fillText('09:41', 36, 44);
+    g.textAlign = 'right'; g.fillText('WI-FI  100%', w - 36, 44);
+    g.textAlign = 'center'; g.fillStyle = '#d9a95a'; g.font = `italic 400 104px ${SERIF}`; g.fillText('Tolpod', w / 2, 150);
+    g.fillStyle = '#8f9b98'; g.font = `500 20px ${MONO}`; spaced(g, 3); g.fillText('A PRIVATE PAUSE, BETWEEN PLACES', w / 2, 222); spaced(g, 0);
+    const tiles = [['Drinks', 0], ['Snacks', 1], ['Rest', 2], ['Info', 3]];
+    tiles.forEach(([label, k], i) => {
+      const x = 36 + (i % 2) * 226, y = 290 + Math.floor(i / 2) * 236;
+      rr(g, x, y, 214, 214, 26); g.fillStyle = 'rgba(255,255,255,0.06)'; g.fill(); g.strokeStyle = 'rgba(255,255,255,0.16)'; g.lineWidth = 2; g.stroke();
+      g.strokeStyle = '#d9a95a'; g.fillStyle = '#d9a95a'; g.lineWidth = 6; g.lineCap = 'round'; g.lineJoin = 'round';
+      const cx = x + 107, cy = y + 88;
+      if (k === 0) { g.beginPath(); g.moveTo(cx - 26, cy - 34); g.lineTo(cx + 26, cy - 34); g.lineTo(cx + 18, cy + 40); g.lineTo(cx - 18, cy + 40); g.closePath(); g.stroke(); g.beginPath(); g.moveTo(cx + 6, cy - 34); g.lineTo(cx + 22, cy - 56); g.stroke(); }
+      if (k === 1) { g.beginPath(); g.moveTo(cx - 30, cy - 38); g.lineTo(cx + 30, cy - 38); g.lineTo(cx + 36, cy + 40); g.lineTo(cx - 36, cy + 40); g.closePath(); g.stroke(); g.beginPath(); g.moveTo(cx - 30, cy - 22); g.lineTo(cx + 30, cy - 22); g.stroke(); }
+      if (k === 2) { g.beginPath(); g.arc(cx, cy, 38, 0.5 * Math.PI, 1.5 * Math.PI, false); g.arc(cx - 14, cy, 30, 1.5 * Math.PI, 0.5 * Math.PI, true); g.closePath(); g.fill(); }
+      if (k === 3) { g.beginPath(); g.arc(cx, cy, 40, 0, Math.PI * 2); g.stroke(); g.beginPath(); g.moveTo(cx, cy - 4); g.lineTo(cx, cy + 22); g.stroke(); g.beginPath(); g.arc(cx, cy - 20, 3, 0, Math.PI * 2); g.fill(); }
+      g.fillStyle = '#ece7db'; g.textAlign = 'center'; g.font = `600 34px ${SANS}`; g.fillText(label, cx, y + 176);
+    });
+    rr(g, 36, 800, 440, 92, 46); g.fillStyle = '#d9a95a'; g.fill();
+    g.fillStyle = '#1a1409'; g.font = `700 38px ${SANS}`; g.textAlign = 'center'; g.fillText('Touch to begin', w / 2, 847);
+    g.fillStyle = '#8f9b98'; g.font = `500 20px ${MONO}`; g.fillText('PAY BY CARD OR APP', w / 2, 950);
+    return uiTex(c);
+  },
+  keypad() {                                                 // vending keypad screen 10 x 6
+    const w = 512, h = 307, c = newCanvas(w, h), g = c.getContext('2d');
+    g.fillStyle = '#101417'; g.fillRect(0, 0, w, h);
+    g.fillStyle = '#1b2a2d'; g.fillRect(0, 0, w, 54);
+    g.textBaseline = 'middle'; g.textAlign = 'left'; g.fillStyle = '#8f9b98'; g.font = `500 24px ${MONO}`; spaced(g, 3); g.fillText('SELECT', 28, 28); spaced(g, 0);
+    g.fillStyle = '#ece7db'; g.font = `700 150px ${SANS}`; g.fillText('A4', 28, 168);
+    g.textAlign = 'right'; g.fillStyle = '#d9a95a'; g.font = `700 76px ${SANS}`; g.fillText('$2.50', w - 28, 150);
+    g.fillStyle = '#8f9b98'; g.font = `500 22px ${MONO}`; spaced(g, 3); g.fillText('TAP TO PAY', w - 28, 252); spaced(g, 0);
+    return uiTex(c);
+  },
+  tvScene() {                                                // the 50" TV / a calm landscape, 16:9
+    const w = 1024, h = 560, c = newCanvas(w, h), g = c.getContext('2d');
+    const sky = g.createLinearGradient(0, 0, 0, h); sky.addColorStop(0, '#15405a'); sky.addColorStop(0.62, '#e7a56e'); sky.addColorStop(1, '#f4d3a2'); g.fillStyle = sky; g.fillRect(0, 0, w, h);
+    const sun = g.createRadialGradient(690, 330, 10, 690, 330, 190); sun.addColorStop(0, 'rgba(255,248,220,1)'); sun.addColorStop(0.3, 'rgba(255,214,150,0.65)'); sun.addColorStop(1, 'rgba(255,214,150,0)'); g.fillStyle = sun; g.fillRect(0, 0, w, h);
+    [['#4a6b5a', 400, 60], ['#2f5146', 440, 80], ['#1b3430', 480, 70]].forEach(([col, y, amp], i) => {
+      g.fillStyle = col; g.beginPath(); g.moveTo(0, h); g.lineTo(0, y);
+      for (let x = 0; x <= w; x += 32) g.lineTo(x, y + Math.sin(x * 0.006 + i * 1.7) * amp * 0.5 + Math.sin(x * 0.017 + i) * amp * 0.2);
+      g.lineTo(w, h); g.closePath(); g.fill();
+    });
+    g.fillStyle = 'rgba(255,255,255,0.92)'; g.textBaseline = 'middle'; g.textAlign = 'left';
+    g.font = `500 22px ${MONO}`; spaced(g, 3); g.fillText('NOW PLAYING  -  04:32', 48, 52); spaced(g, 0);
+    g.font = `italic 400 120px ${SERIF}`; g.fillText('Calm', 48, 470);
+    return uiTex(c);
+  },
+  adScreen() {                                               // ad screen on the left wall, 16:9
+    const w = 1024, h = 560, c = newCanvas(w, h), g = c.getContext('2d');
+    g.fillStyle = '#e9e5dd'; g.fillRect(0, 0, w, h);
+    g.textBaseline = 'alphabetic'; g.textAlign = 'left';
+    g.fillStyle = '#987347'; g.font = `500 22px ${MONO}`; spaced(g, 4); g.fillText('TOLPOD  -  A PRIVATE PAUSE', 64, 96); spaced(g, 0);
+    g.fillStyle = '#272622'; g.font = `400 100px ${SANS}`; spaced(g, -3); g.fillText('Make room for', 60, 230); spaced(g, 0);
+    g.fillStyle = '#987347'; g.font = `italic 400 170px ${SERIF}`; g.fillText('rest.', 60, 380);
+    rr(g, 64, 428, 300, 64, 32); g.fillStyle = '#272622'; g.fill();
+    g.fillStyle = '#f3efe7'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = `600 26px ${SANS}`; g.fillText('Scan to book', 214, 462);
+    return uiTex(c);
+  },
+  brandBar() {                                               // header above the touch screen, 4:1
+    const w = 1024, h = 256, c = newCanvas(w, h), g = c.getContext('2d');
+    g.fillStyle = '#101315'; g.fillRect(0, 0, w, h); g.fillStyle = '#d9a95a'; g.fillRect(0, h - 8, w, 8);
+    g.fillStyle = '#f3efe7'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = `500 98px ${MONO}`; spaced(g, 22); g.fillText('TOLPOD', w / 2 + 11, h * 0.46); spaced(g, 0);
+    return uiTex(c);
+  },
+  sign(text, color = '#e0b55a', w = 512, h = 128, bg = null, style = 'sans') {
     const c = newCanvas(w, h), ctx = c.getContext('2d');
     if (bg) { ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h); }
     ctx.fillStyle = color; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.font = `bold ${Math.round(h * 0.62)}px Georgia, serif`;
-    ctx.fillText(text, w / 2, h / 2);
+    const fam = style === 'serif' ? SERIF : SANS, wt = style === 'serif' ? 'italic 400' : '700';
+    const fs = fitFont(ctx, text, wt, fam, h * 0.62, w * 0.92);
+    if (style !== 'serif') spaced(ctx, fs * 0.1);
+    ctx.fillText(text, w / 2, h / 2); spaced(ctx, 0);
     const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t;
   },
 };
@@ -138,9 +230,10 @@ export function makeMaterials(theme = 'zen_sage') {
   const k = tex.grain();
   k.repeat.set(10, 10);
   const M = {};
-  M.oak = std({ map: tex.wood([102, 66, 31], [173, 122, 69], 3), roughness: 0.55, metalness: 0 }, 30);
-  M.walnut = std({ map: tex.wood([26, 13, 6], [69, 36, 18], 8), roughness: 0.5, metalness: 0 }, 30);
-  M.floor = std({ map: tex.planks([115, 77, 41], [92, 59, 31]), roughness: 0.4, metalness: 0 }, 36);
+  const oakMap = tex.wood([116, 84, 52], [178, 140, 96], 3), walMap = tex.wood([26, 13, 6], [69, 36, 18], 8), floorMap = tex.planks([115, 77, 41], [92, 59, 31]);
+  M.oak = std({ map: oakMap, bumpMap: oakMap, bumpScale: 0.35, roughness: 0.55, metalness: 0 }, 30);
+  M.walnut = std({ map: walMap, bumpMap: walMap, bumpScale: 0.3, roughness: 0.5, metalness: 0 }, 30);
+  M.floor = std({ map: floorMap, bumpMap: floorMap, bumpScale: 0.6, roughness: 0.4, metalness: 0 }, 36);
   M.plaster = std({ map: tex.plaster(TH.interior), roughness: 0.85 }, 48);
   M.ext = std({ map: tex.plaster(TH.exterior), roughness: 0.6 }, 48);
   M.ceil = std({ map: tex.plaster([0.9, 0.87, 0.8]), roughness: 0.9 }, 48);
@@ -184,9 +277,10 @@ export function makeMaterials(theme = 'zen_sage') {
   M.cabinetInterior = std({ color: 0x2a2724, roughness: 0.9 });
   M.suitcase = std({ color: 0x23324f, roughness: 0.5 });
   M.suitcase2 = std({ color: 0x6b2a2a, roughness: 0.5 });
-  M.screenTv = new THREE.MeshBasicMaterial({ map: tex.screen('#15485a', '#e08c47', 'NOW PLAYING') });
-  M.screenAd = new THREE.MeshBasicMaterial({ map: tex.screen('#e69a40', '#a6335c', 'TOLPOD') });
-  M.screenUi = new THREE.MeshBasicMaterial({ map: tex.screen('#1a8a82', '#33478c', 'TOUCH HERE') });
+  const screen = (map) => new THREE.MeshBasicMaterial({ map, toneMapped: false });      // screens glow with their own colours
+  M.screenTv = screen(tex.tvScene()); M.screenAd = screen(tex.adScreen()); M.screenKiosk = screen(tex.kiosk());
+  M.screenKey = screen(tex.keypad()); M.screenBrand = screen(tex.brandBar()); M.screenUi = M.screenKiosk;
+  M.vend = std({ color: 0xf4efe6, emissive: 0xfff1dc, emissiveIntensity: 0.55, roughness: 0.6 });      // soft light behind the products
   M.light = TH.light;
   M.accentColor = TH.accent;
   return M;

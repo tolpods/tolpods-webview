@@ -2,12 +2,13 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { buildPod } from './pod.js';
 import { createStage, webglOK, makeTimer } from './stage.js';
-import { FEATURES, DIM_ROWS } from './spec.js';
+import { fontsReady } from './ready.js';
+import { FEATURES } from './spec.js';
 
 // text content first, so the page works even if 3D is unavailable
 document.getElementById('featureGrid').innerHTML = FEATURES.map(([t, d]) => `<div class="card"><h3>${t}</h3><p>${d}</p></div>`).join('');
-document.getElementById('dimTable').innerHTML = DIM_ROWS.map(([a, b]) => `<tr><td>${a}</td><td>${b}</td></tr>`).join('');
 
+await fontsReady;                                           // so text on the 3D screens uses the site fonts
 const viewer = document.getElementById('viewer');
 const canvas = document.getElementById('c');
 

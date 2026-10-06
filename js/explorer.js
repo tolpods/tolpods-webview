@@ -4,12 +4,14 @@ import { buildPod, planToWorld, groundZ } from './pod.js';
 import { createStage, addGround, webglOK, makeTimer } from './stage.js';
 import { step as walkStep } from './walk.js';
 import { buildAirport } from './airport.js';
-import { markerVisible } from './occlude.js';
+import { createFx } from './fx.js';
+import { fontsReady } from './ready.js';
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
 if (!webglOK()) { $('#nogl').hidden = false; throw new Error('WebGL not available'); }
 
+await fontsReady;                                           // so text drawn on the 3D screens uses the site fonts
 const canvas = $('#c');
 const { renderer, scene, fit, mobile } = createStage(canvas);
 const pod = buildPod();
@@ -21,10 +23,12 @@ const camera = new THREE.PerspectiveCamera(50, 1, 1, 20000);
 const airport = buildAirport();
 scene.add(airport.group);
 const plainFog = scene.fog, airportFog = new THREE.Fog(0xd9d5cc, 1100, 5200);
-let envOn = true;
-function setEnv(on) { envOn = on; airport.group.visible = on; ground.visible = !on; scene.fog = on ? airportFog : plainFog; }
-setEnv(true);
-let roofOn = true;
+let envOn = true, airportEnv = null;
+const roomEnv = scene.environment;
+function setEnv(on) {
+  envOn = on; airport.group.visible = on; ground.visible = !on; scene.fog = on ? airportFog : plainFog;
+  scene.environment = on && airportEnv ? airportEnv : roomEnv; scene.environmentIntensity = on && airportEnv ? 0.9 : 0.6;
+}
 const touch = matchMedia('(pointer: coarse)').matches;
 const ease = (t) => t * t * (3 - 2 * t);
 const W = (x, y, z) => planToWorld(x, y, z);
@@ -37,6 +41,17 @@ controls.enableDamping = true; controls.minDistance = 60; controls.maxDistance =
 camera.position.copy(center).add(new THREE.Vector3(250, 210, -330));
 controls.update();
 
+// reflections: capture the terminal once from the pod's centre, so glossy surfaces (chair shell, glass, steel) reflect the real hall
+try {
+  const pm = new THREE.PMREMGenerator(renderer), envScene = new THREE.Scene(), holder = new THREE.Group();
+  holder.position.copy(center).multiplyScalar(-1);
+  envScene.add(holder, new THREE.HemisphereLight(0xffffff, 0x8a8478, 1.6), new THREE.AmbientLight(0xffffff, 0.8));
+  scene.remove(airport.group); holder.add(airport.group); airport.ceilingG.visible = true;
+  airportEnv = pm.fromScene(envScene, 0.02, 1, 20000).texture;
+  holder.remove(airport.group); scene.add(airport.group);
+} catch (e) { console.warn('terminal reflections unavailable', e); try { scene.add(airport.group); } catch (e2) { /* already there */ } }
+setEnv(true);
+
 // ---------------------------------------------------------------- UI helpers
 let toastTimer = 0;
 function toast(msg) {
@@ -44,7 +59,7 @@ function toast(msg) {
   clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
 }
 const HINTS = {
-  orbit: 'Drag to orbit - scroll or pinch to zoom - tap a number for details',
+  orbit: 'Drag to orbit - scroll or pinch to zoom',
   walk: touch ? 'Left stick to move - drag the right side to look' : 'WASD / arrows to move - drag to look - Shift to run - Esc to leave',
   tour: 'Guided tour - Pause, Next or Stop below',
 };
@@ -138,7 +153,6 @@ const GO = {
   front: { pos: [38.5, 300, 95], look: [38.5, 144, 45] },
   back: { pos: [45, -175, 85], look: [45, 0, 50] },
   left: { pos: [-195, 72, 75], look: [0, 72, 45] },
-  right: { pos: [285, 92, 75], look: [90, 92, 45] },
   top: { pos: [45, 55, 600], look: [45, 72, 0] },
 };
 function flyTo(key) {
@@ -153,11 +167,10 @@ function flyTo(key) {
 const TOURS = {
   outside: [
     { pos: [38.5, 330, 80], look: [38.5, 144, 50], move: 3, dwell: 3.4, title: 'The entrance', text: 'A 30″ pathway into the pod. Free storage and the coat station are on the left, the fridge block and premium storage on the right.' },
-    { pos: [285, 92, 75], look: [90, 92, 45], move: 5, dwell: 3.4, title: 'Items for sale (17)', text: 'The right wall is a 6.5″ display wall for items for sale, visible from outside.' },
     { pos: [160, -120, 75], look: [76, 0, 55], move: 5, dwell: 3.4, title: 'Snack vending (12)', text: '15″ × 48″ × 92″. Five rows plus a 20″ drop bay for your purchase.' },
     { pos: [45, -150, 80], look: [55, 0, 55], move: 4, dwell: 3.4, title: 'Touch screen (13) and cold storage (11)', text: 'An interactive screen for ads and content, with refrigerated stock behind it.' },
     { pos: [-20, -130, 75], look: [23, 0, 55], move: 4, dwell: 3.4, title: 'Refrigerated vending (14)', text: '39″ × 48″ × 92″. Cold drinks and snacks, with complimentary and paid items. It also opens to the inside of the pod.' },
-    { pos: [-195, 72, 75], look: [0, 72, 45], move: 5, dwell: 3.4, title: 'Ad screen and free items', text: 'The left wall carries a regular TV for ads (16) and a free-items shelf (15).' },
+    { pos: [-195, 72, 75], look: [0, 72, 45], move: 5, dwell: 3.4, title: 'Ad screen', text: 'The left wall carries a regular TV for ads.' },
     { pos: [-110, 230, 85], look: [30, 144, 50], move: 4, dwell: 2.4, title: 'Back to the entrance', text: 'That is the public side of TOLPOD. Try the inside tour next.' },
   ],
   inside: [
@@ -248,44 +261,25 @@ addEventListener('pointerup', () => { sliding = false; });
 slider.addEventListener('input', () => { const msg = pod.api.scrub('chair', slider.value / 100); if (msg) { toast(msg); slider.value = 0; } });
 
 const toggler = (id, fn) => { const b = $(id); b.addEventListener('click', () => { const on = !b.classList.contains('on'); b.classList.toggle('on', on); fn(on); }); };
-toggler('#roofBtn', (on) => { roofOn = on; pod.api.setRoof(on); });
+toggler('#roofBtn', (on) => pod.api.setRoof(on));
 toggler('#envBtn', setEnv);
+let fx = null, fxOn = !mobile, fxTried = false;
+const fxBtn = $('#fxBtn');
+fxBtn.classList.toggle('on', fxOn);
+fxBtn.addEventListener('click', () => {
+  if (fxTried && !fx) { toast('Glow effects are not supported on this device'); return; }
+  fxOn = !fxOn; fxBtn.classList.toggle('on', fxOn);
+});
+function renderFrame() {
+  if (fxOn && !fxTried) { fxTried = true; fx = createFx(renderer, scene, camera); if (!fx) { fxOn = false; fxBtn.classList.remove('on'); } }
+  if (fxOn && fx) { try { fx.render(); return; } catch (e) { console.warn('post-processing failed, using plain rendering', e); fxOn = false; fx = null; fxBtn.classList.remove('on'); } }
+  renderer.render(scene, camera);
+}
 toggler('#lightBtn', (on) => pod.api.setInteriorLights(on));
 toggler('#personBtn', (on) => pod.api.setPerson(on));
-let labels = true;
-toggler('#labelBtn', (on) => { labels = on; $('#markers').style.display = on ? '' : 'none'; });
-
-// ---------------------------------------------------------------- hotspots
-const markerEls = pod.hotspots.map((h) => {
-  const el = document.createElement('button');
-  el.className = 'marker'; el.textContent = h.id; el.title = h.title; el.setAttribute('aria-label', h.title);
-  el.addEventListener('click', () => showInfo(h));
-  $('#markers').appendChild(el);
-  return { h, el, p: W(...h.pos), plan: { x: h.pos[0], y: h.pos[1], z: h.pos[2] } };
-});
-function showInfo(h) {
-  $('#infoTitle').textContent = h.title;
-  $('#infoDims').innerHTML = h.dims.map((d) => `<li>${d}</li>`).join('');
-  $('#infoText').textContent = h.text;
-  $('#info').hidden = false;
-}
-$('#infoX').addEventListener('click', () => { $('#info').hidden = true; });
-const tmp = new THREE.Vector3();
-function updateMarkers() {
-  if (!labels) return;
-  const w = canvas.clientWidth, h = canvas.clientHeight, limit = mode === 'walk' ? 230 : 1300;
-  const cam = { x: camera.position.x, y: -camera.position.z, z: camera.position.y };     // camera in plan inches
-  for (const m of markerEls) {
-    tmp.copy(m.p); const dist = tmp.distanceTo(camera.position);
-    tmp.project(camera);
-    const vis = tmp.z < 1 && Math.abs(tmp.x) < 1.05 && Math.abs(tmp.y) < 1.05 && dist < limit && markerVisible(cam, m.plan, roofOn);   // hidden behind walls / roof
-    m.el.style.display = vis ? '' : 'none';
-    if (vis) { m.el.style.left = ((tmp.x + 1) / 2) * w + 'px'; m.el.style.top = ((1 - tmp.y) / 2) * h + 'px'; m.el.style.opacity = String(Math.max(0.35, Math.min(1, 1.4 - dist / limit))); }
-  }
-}
 
 // ---------------------------------------------------------------- loop
-new ResizeObserver(() => fit(camera)).observe($('#stage'));
+new ResizeObserver(() => { fit(camera); if (fx) fx.setSize(canvas.clientWidth, canvas.clientHeight); }).observe($('#stage'));
 fit(camera);
 setMode('orbit', true);
 const clock = makeTimer();
@@ -298,6 +292,5 @@ const clock = makeTimer();
   else if (mode === 'walk') updateWalker(dt);
   if (envOn) airport.update(camera);
   refreshButtons();
-  updateMarkers();
-  renderer.render(scene, camera);
+  renderFrame();
 })();

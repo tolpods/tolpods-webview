@@ -1,7 +1,7 @@
 // TOLPOD - the full pod, built in code from the sheet's dimensions (inches).
 // Plan frame: x right (0..90), y toward the ENTRANCE (0..144), z up. The group is rotated so the scene is Y-up.
 import * as THREE from 'three';
-import { SPEC as S, HOTSPOTS } from './spec.js';
+import { SPEC as S } from './spec.js';
 import { makeMaterials, tex } from './mats.js';
 import { Batch, boxGeo, rboxGeo, cylGeo, cylXGeo, cylYGeo, extrudeXZ, extrudeYZ, planeGeo } from './geo.js';
 import { Products } from './products.js';
@@ -43,50 +43,44 @@ export function buildPod(opts = {}) {
     return m;
   };
   const group = (name, x = 0, y = 0, z = 0, parent = pod) => { const g = new THREE.Group(); g.name = name; g.position.set(x, y, z); parent.add(g); return g; };
-  const sign = (text, w, h, facing, cx, cy, cz, color, bg) => {
-    const m = new THREE.MeshBasicMaterial({ map: tex.sign(text, color, 512, Math.round(512 * h / w), bg), transparent: !bg });
+  const sign = (text, w, h, facing, cx, cy, cz, color, bg, style) => {
+    const m = new THREE.MeshBasicMaterial({ map: tex.sign(text, color, 1024, Math.round(1024 * h / w), bg, style), transparent: !bg, toneMapped: false });
     batch.add(planeGeo(w, h, facing, cx, cy, cz), m);
   };
 
   // =========================================================== shell, floor, roof, lights
   B(0, 0, -S.pod.deck, 90, 144, S.pod.deck, M.deck);
+  (() => {                                                                                   // soft contact shadow on the floor, following the footprint
+    const W = 130, H = 190, k = 2, c = document.createElement('canvas'); c.width = W * k; c.height = H * k; const g = c.getContext('2d');
+    g.shadowColor = 'rgba(0,0,0,0.5)'; g.shadowBlur = 26; g.shadowOffsetX = 2000; g.fillStyle = '#000';   // draw only the blurred shadow, not the rectangle
+    g.fillRect(20 * k - 2000, 23 * k, 90 * k, 144 * k);
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(W, H).translate(45, 72, -9.7), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false }));
+    m.renderOrder = 1; pod.add(m);
+  })();
   B(3.5, 48, 0, 80, 96, 0.4, M.floor);
   parts.roof = mesh(boxGeo(0, 0, 92, 90, 144, 2, M.ceil), M.ceil, pod, 'roof');
   for (const x of [20, 39.5, 59]) B(x - 1.5, 52, 91.6, 3, 88, 0.4, M.led);
   for (const y of [58, 76, 94, 112, 130]) B(16, y - 2, 90.4, 48, 4, 1.6, M.oak);          // oak ceiling beams
   B(3.5, 48.2, 88.2, 80, 1.2, 0.5, M.cove); B(3.5, 48, 88.8, 80, 3, 0.8, M.oak);          // warm cove light + ledge
 
-  // ---- left wall strip (x 0..3.5): ad TV (y 0..72) and free items (y 72..144)
+  // ---- left wall strip (x 0..3.5): plain, with the ad screen
   B(2.9, 0, 0, 0.6, 144, 92, M.plaster); B(0, 0, 86, 3.5, 144, 6, M.ext); B(0, 0, 0, 3.5, 144, 8, M.graphite);
   for (const y of [0, 71.4, 142.8]) B(0, y, 0, 3.5, 1.2, 92, M.ext);
-  B(0, 1.2, 8, 3.5, 70.2, 78, M.ext);
+  B(0, 1.2, 8, 3.5, 70.2, 78, M.ext); B(0, 72.6, 8, 3.5, 70.2, 78, M.ext);
   B(-0.15, 12, 38, 2.75, 48, 27, M.black); PL(46.4, 25.4, '-x', -0.2, 36, 51.5, M.screenAd);
-  B(0.1, 74, 80, 0.4, 68, 3, M.green);
-  for (const z of [14, 32, 50, 68]) {
-    B(0, 74, z, 2.9, 68, 0.5, M.oak);
-    for (let k = 0; k < 16; k++) { const [kd, ci] = Products.random(rand, 'snack'); prod.add(kd, 1.45, 76.1 + k * 4.2, z + 0.5, -Math.PI / 2, 0.5, ci); }
-  }
-  // ---- right wall strip (x 83.5..90): items for sale (y 50..142)
+  // ---- right wall strip (x 83.5..90): plain
   B(83.5, 0, 0, 0.6, 144, 92, M.plaster); B(83.5, 0, 86, 6.5, 144, 6, M.ext); B(83.5, 0, 0, 6.5, 144, 8, M.graphite);
-  B(83.5, 0, 8, 6.5, 50, 78, M.ext); B(83.5, 142, 8, 6.5, 2, 78, M.ext);
-  B(84.1, 50, 8, 0.6, 92, 78, M.oak); B(89.2, 52, 82, 0.5, 88, 3, M.led);
-  for (const y of [50, 90, 140]) B(83.5, y, 8, 6.5, 1.2, 78, M.graphite);
-  for (const z of [12, 28, 44, 60, 76]) {
-    B(84.7, 52, z, 4.7, 88, 0.5, M.steel);
-    for (let k = 0; k < 18; k++) { const [kd, ci] = Products.random(rand, 'mix'); prod.add(kd, 87.0, 55.2 + k * 4.8, z + 0.5, Math.PI / 2, 0.75, ci); }
-  }
-  B(89.5, 52, 10, 0.4, 88, 76, M.glass);
-  // ---- cabin back wall (y 47.2..48) with the pass-through window to machine 14
-  B(3.5, 47.2, 0, 16.5, 0.8, 92, M.plaster); B(40, 47.2, 0, 43.5, 0.8, 92, M.plaster);
-  B(20, 47.2, 0, 20, 0.8, 28, M.plaster); B(20, 47.2, 76, 20, 0.8, 16, M.plaster);
-  B(20, 47.4, 28, 20, 0.3, 48, M.glass); B(19.5, 46.8, 27.5, 21, 1.6, 1, M.steel); B(19.5, 46.8, 75.5, 21, 1.6, 1, M.steel);
+  B(83.5, 0, 8, 6.5, 144, 78, M.ext);
+  // ---- cabin back wall (y 47.2..48): solid, so the machines behind it cannot be seen from inside (or the other way round)
+  B(3.5, 47.2, 0, 80, 0.8, 92, M.plaster);
   // ---- front: 30" entrance opening, frame, rails for the two glass layers
   B(3.5, 142.8, 35, 12, 1.2, 57, M.ext);
   B(23.5, 142.5, 80, 30, 2, 1.5, M.graphite); B(23.5, 143.2, 81.5, 30, 0.6, 10.5, M.glass); B(23.5, 142, 0, 30, 3, 0.5, M.steel);
   B(22.7, 142.2, 0, 0.8, 2.6, 82, M.steel); B(53.5, 142.2, 0, 0.8, 2.6, 82, M.steel);
   for (const yy of [144.0, 144.6]) { B(23.5, yy, 0.5, 60, 0.4, 0.3, M.steel); B(23.5, yy, 79.4, 60, 0.4, 0.6, M.steel); }
-  sign('TOLPOD', 18, 5, '+y', 62.5, 144.4, 80, '#e0b55a');
-  sign('rest  -  recharge', 18, 2.4, '+y', 62.5, 144.4, 73, '#e0b55a');
+  B(54.5, 144.0, 73.6, 16, 0.35, 12.4, M.graphite);                                          // dark plaque, so the sign reads against the wood
+  sign('TOLPOD', 15, 4.4, '+y', 62.5, 144.4, 83.4, '#e0b55a');
+  sign('rest \u00b7 recharge', 15, 2.6, '+y', 62.5, 144.4, 76.3, '#e0b55a', null, 'serif');
   // privacy cameras (7)
   B(36.5, 144.5, 84, 3, 3, 3, M.graphite); B(36.2, 148.2, 84.1, 3.6, 0.3, 1.6, M.steel); CY(38, 147, 85.5, 1, 1.2, M.black);
   B(40.5, 139.5, 84, 3, 3, 3, M.graphite); CY(42, 138.2, 85.5, 1, 1.2, M.black); B(43, 142.6, 84.3, 0.5, 0.3, 0.5, M.red);
@@ -176,7 +170,7 @@ export function buildPod(opts = {}) {
     mesh(cylGeo(26, ry, 22, 0.5, 10, 10), M.bronze, arms, 'chair.remote');
     const tab = group('chair.tablet', 26, ry, 33, arms); tab.rotation.x = 0.61;
     mesh(boxGeo(-2.8, -1.8, -0.25, 5.6, 3.6, 0.5, M.black), M.black, tab, 'chair.remote');
-    mesh(new THREE.PlaneGeometry(4.6, 2.8).translate(0, 0, 0.3), M.screenUi, tab, 'chair.remote', false);
+    mesh(new THREE.PlaneGeometry(4.6, 2.8).translate(0, 0, 0.3), M.screenKey, tab, 'chair.remote', false);
 
     // ---- pull-out desks: two 21.5 x 10.75 plates that rise out of the 2.5" armrest slots, rotate flat and join (43")
     const desks = [];
@@ -340,38 +334,41 @@ export function buildPod(opts = {}) {
   })();
 
   // =========================================================== back block: 14, 11, 13, 12 (open to the public side, y = 0)
-  const vending = (x0, w, cols, rows, drinkRatio, openBack, title, headerMat, tsize) => {
+  const vending = (x0, w, cols, rows, drinkRatio, title, sub, c1, c2) => {
     const d = 48, t = 1, gx = 1.5, gw = w - 3, w0 = 36, w1 = 86, pitch = (w1 - w0) / rows, iw = gw / cols;
     B(x0, 0, 0, t, d, 92, M.graphite); B(x0 + w - t, 0, 0, t, d, 92, M.graphite); B(x0, 0, 91, w, d, 1, M.graphite); B(x0, 0, 0, w, d, 1, M.graphite);
-    if (!openBack) { B(x0, d - t, 0, w, t, 92, M.graphite); B(x0 + gx, d - 1.3, w0, gw, 0.3, w1 - w0, M.led); }
+    B(x0, d - 2.2, 0, w, t, 92, M.graphite);                         // closed back, a hair in front of the cabin wall
+    B(x0 + gx, d - 3.0, w0, gw, 0.3, w1 - w0, M.vend);              // soft light behind the products
     for (let r = 0; r < rows; r++) {
       const wz = w0 + r * pitch;
-      B(x0 + gx, 1, wz, gw, d - 2, 0.4, M.steel); B(x0 + gx, 1.4, wz + 0.4, gw, 0.2, 0.6, M.white);
-      for (let c = 1; c < cols; c++) B(x0 + gx + c * iw - 0.05, 4, wz + 0.4, 0.1, d - 6, pitch - 1, M.steel);
+      B(x0 + gx, 1, wz, gw, d - 4, 0.4, M.steel); B(x0 + gx, 1.4, wz + 0.4, gw, 0.2, 0.6, M.white);
+      for (let c = 1; c < cols; c++) B(x0 + gx + c * iw - 0.05, 4, wz + 0.4, 0.1, 26, pitch - 3, M.graphite);   // slim dark slot dividers
       for (let c = 0; c < cols; c++) {
         const seed = Math.floor(rand() * 1e6), grp = rand() < drinkRatio ? 'drink' : 'snack';
         for (let dep = 0; dep < 3; dep++) {
           const [kd, ci] = Products.random(rng(seed), grp);
-          prod.add(kd, x0 + gx + c * iw + iw / 2, d - (d - t - 4.5 - dep * 8), wz + 0.4, 0, 1, ci);
+          prod.add(kd, x0 + gx + c * iw + iw / 2, t + 4.5 + dep * 8, wz + 0.4, 0, 1, ci);
         }
       }
     }
     B(x0 + gx, 0.4, w0, gw, 0.4, w1 - w0, M.glass);
-    B(x0 + gx, 0, 87, gw, 0.4, 4, headerMat); B(x0 + gx, 0, 20.5, gw, 0.6, 13, M.black);
-    B(x0 + gx + 1, -0.05, 22, Math.min(gw - 2, 10), 0.2, 6, M.screenUi); B(x0 + gx + 1, -0.1, 29, Math.min(gw - 2, 4), 0.4, 3, M.led);
+    const hm = new THREE.MeshBasicMaterial({ map: tex.header(title, sub, c1, c2, gw / 4), toneMapped: false });
+    B(x0 + gx, 0, 87, gw, 0.4, 4, M.graphite); PL(gw, 4, '-y', x0 + w / 2, -0.06, 89, hm);          // header drawn at its real 9:1 / 3:1 proportions
+    B(x0 + gx, 0, 20.5, gw, 0.6, 13, M.black);
+    const kw = Math.min(gw - 2, 10); PL(kw, kw * 0.6, '-y', x0 + gx + 1 + kw / 2, -0.08, 22 + kw * 0.3, M.screenKey);
+    B(x0 + gx + 1, -0.1, 29, Math.min(gw - 2, 4), 0.4, 3, M.led);
     B(x0 + gx, 0, 2, gw, 0.6, 17, M.black); B(x0 + gx + 0.5, 0.3, 2.5, gw - 1, 0.35, 16, M.smoke);
-    sign(title, gw - 1, tsize, '-y', x0 + w / 2, -0.12, 89.4, '#ffffff');
   };
-  vending(3.5, 39, 8, 5, 0.75, true, 'COLD DRINKS & FRESH', M.screenTv, 2.6);
-  vending(68.5, 15, 3, 5, 0.25, false, 'SNACKS', M.screenAd, 2.2);
+  vending(3.5, 39, 8, 5, 0.75, 'COLD DRINKS', 'FRESH  -  ICE COLD', '#14485c', '#c9793a');
+  vending(68.5, 15, 3, 5, 0.25, 'SNACKS', 'TAKE A TREAT', '#9b3a56', '#d9893f');
   B(42.5, 8, 0, 26, 40, 92, M.oak); B(44.5, 7.6, 80, 22, 0.4, 8, M.black); B(44.5, 7.7, 76, 22, 0.3, 0.6, M.ledcool);       // 11 refrigerated storage
-  B(42.5, 0, 0, 26, 8, 92, M.graphite); B(43.5, -0.1, 30, 24, 0.8, 46, M.black); PL(22.8, 44.8, '-y', 55.5, -0.5, 52.8, M.screenUi);   // 13 touch screen
-  B(43.5, -0.05, 82, 24, 0.4, 6, M.screenAd);
+  B(42.5, 0, 0, 26, 8, 92, M.graphite); B(43.5, -0.1, 30, 24, 0.8, 46, M.black); PL(22.8, 44.8, '-y', 55.5, -0.5, 52.8, M.screenKiosk);   // 13 touch screen
+  B(43.5, -0.05, 82, 24, 0.4, 6, M.graphite); PL(24, 6, '-y', 55.5, -0.3, 85, M.screenBrand);
 
   // =========================================================== decor
   R(16.5, 49, 0.4, 46, 72, 0.3, 0.1, M.rugDark); R(17.5, 50, 0.4, 44, 70, 0.5, 0.2, M.rug);
   for (const [a, b] of [[15.5, 20], [40, 63.5]]) for (let x = a + 0.5; x + 1.2 <= b; x += 2.1) B(x, 48, 3, 1.2, 1.4, 85, M.oak);   // slat wall
-  CY(52, 49.5, 62, 11, 0.6, M.cove); CY(52, 49.8, 62, 9.6, 0.5, M.walnut);                                                     // glowing ring
+  batch.add(new THREE.RingGeometry(9.2, 10.6, 96).rotateX(-Math.PI / 2).translate(52, 49.5, 62), M.cove);                        // thin glowing ring on the slat wall
   for (const x of [24.0, 52.4]) B(x, 118, 0.4, 0.6, 26, 0.3, M.accent);                                                         // path lights
   CX(21, 52, 89, 0.4, 48, M.steel); for (const x of [26, 39.5, 53]) C(x, 52, 88.3, 0.5, 1.2, M.brass, 8);                      // odor misters
   const plant = (x, y, z, sc, n) => {
@@ -471,5 +468,5 @@ export function buildPod(opts = {}) {
     if (rigs.glass1.t > 0.5 || rigs.glass2.t > 0.5) bx(23.5, 53.5, 142.8, 145, 'glass');
     return o;
   }
-  return { root, pod, parts, M, api, obstacles, hotspots: HOTSPOTS, rects, lights };
+  return { root, pod, parts, M, api, obstacles, rects, lights };
 }

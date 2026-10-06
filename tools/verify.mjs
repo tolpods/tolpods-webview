@@ -3,7 +3,8 @@ import { pathToFileURL } from 'node:url';
 import path from 'node:path';
 const here = path.dirname(new URL(import.meta.url).pathname);
 const ctx = new Proxy({}, { get: (t, k) => (k === 'createImageData' ? (w, h) => ({ data: new Uint8ClampedArray(w * h * 4) }) : k === 'createLinearGradient' || k === 'createRadialGradient' ? () => ({ addColorStop() {} }) : () => {}), set: () => true });
-globalThis.document = { createElement: () => ({ width: 0, height: 0, getContext: () => ctx, style: {} }) };
+const canvases = [];
+globalThis.document = { createElement: () => { const c = { width: 0, height: 0, getContext: () => ctx, style: {} }; canvases.push(c); return c; } };
 // resolve the browser import map for Node
 import { register } from 'node:module';
 const loader = `
@@ -76,6 +77,14 @@ console.log('   TV stowed: lowest point z =', planBox(tvs).z[0], '(walking clear
 
 // ---- rig interlock
 console.log('   interlock:', JSON.stringify(pod.api.set('chair', 1)), '->', JSON.stringify(pod.api.set('desk', 1)));
+// ---- screen / header textures are drawn at the real aspect ratio of the surface (no stretched text)
+const has = (w, h) => canvases.some((c) => c.width === w && c.height === h);
+ok('touch-screen UI texture (22.8 x 44.8 panel)', '512 x 1008', has(512, 1008) ? '512 x 1008' : 'missing', has(512, 1008) && Math.abs(512 / 1008 - 22.8 / 44.8) < 0.005);
+ok('TV + ad screen textures (16:9 panels)', '1024 x 560', has(1024, 560) ? '1024 x 560' : 'missing', has(1024, 560) && Math.abs(1024 / 560 - 42 / 22.9) < 0.01);
+ok('vending header 14 (36 x 4 = 9:1)', '1536 x 171', has(1536, 171) ? '1536 x 171' : 'missing', has(1536, 171));
+ok('vending header 12 (12 x 4 = 3:1)', '1536 x 512', has(1536, 512) ? '1536 x 512' : 'missing', has(1536, 512));
+ok('keypad screen (10 x 6)', '512 x 307', has(512, 307) ? '512 x 307' : 'missing', has(512, 307) && Math.abs(512 / 307 - 10 / 6) < 0.01);
+ok('brand bar (24 x 6 = 4:1)', '1024 x 256', has(1024, 256) ? '1024 x 256' : 'missing', has(1024, 256));
 // ---- walking through the real pod (same collision code the explorer uses)
 const { step: wstep } = await import(pathToFileURL(path.join(here, '../js/walk.js')).href);
 const walk = (start, dir, n, speed = 1) => { const p = { x: start[0], y: start[1] }; for (let i = 0; i < n; i++) wstep(p, dir[0] * speed, dir[1] * speed, 8, pod.api.set('tv', 0) || pod.obstacles()); return p; };

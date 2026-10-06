@@ -25,14 +25,14 @@ const ctx = new Proxy({}, { get: (t, k) => (k === 'createImageData' ? (w, h) => 
 const byId = {};
 const page = process.argv[2] || 'explorer';
 const ids = page === 'explorer'
-  ? ['c', 'stage', 'toast', 'hint', 'info', 'infoX', 'infoTitle', 'infoDims', 'infoText', 'caption', 'capTitle', 'capText', 'capPause', 'capNext', 'capStop', 'stick', 'dock', 'dockToggle', 'recline', 'glassBtn', 'roofBtn', 'lightBtn', 'personBtn', 'labelBtn', 'envBtn', 'markers', 'nogl']
-  : ['c', 'viewer', 'roofBtn', 'featureGrid', 'dimTable'];
+  ? ['c', 'stage', 'toast', 'hint', 'caption', 'capTitle', 'capText', 'capPause', 'capNext', 'capStop', 'stick', 'dock', 'dockToggle', 'recline', 'glassBtn', 'roofBtn', 'lightBtn', 'personBtn', 'fxBtn', 'envBtn', 'nogl']
+  : ['c', 'viewer', 'roofBtn', 'featureGrid'];
 ids.forEach((i) => { byId[i] = el(); });
 if (byId.stick) byId.stick.querySelector = () => el();
 if (byId.recline) byId.recline.value = '0';
 const groups = {
   '[data-mode]': ['orbit', 'walk-in', 'walk-out'].map((m) => el({ mode: m })),
-  '[data-go]': ['front', 'back', 'left', 'right', 'top'].map((g) => el({ go: g })),
+  '[data-go]': ['front', 'back', 'left', 'top'].map((g) => el({ go: g })),
   '[data-tour]': ['inside', 'outside'].map((t) => el({ tour: t })),
   '[data-rig]': [['premium', 'Premium storage'], ['free', 'Free storage'], ['desk', 'Pull-out desks'], ['tv', 'TV']].map(([r, l]) => el({ rig: r, label: l })),
   '[data-chair]': ['0', '1'].map((c) => el({ chair: c })),
@@ -71,8 +71,7 @@ process.on('uncaughtException', (e) => { console.log('FAIL uncaught:', e.stack);
 if (page === 'landing') {
   await import(pathToFileURL(path.join(J, 'landing.js')).href);
   check('landing built features table', byId.featureGrid.innerHTML.includes('Massage chair'));
-  check('landing built dimensions table', byId.dimTable.innerHTML.includes('90″ × 144″'));
-  frames(120);
+    frames(120);
   check('landing viewer marked ready', byId.viewer.classList.contains('ready'));
   byId.roofBtn.fire('click'); frames(3); check('roof button toggles label', byId.roofBtn.textContent === 'Hide roof');
   console.log(errors ? 'LANDING FAILED' : 'LANDING OK'); process.exit(errors ? 1 : 0);
@@ -87,7 +86,6 @@ byId.dockToggle.fire('click'); check('Controls button collapses the sidebar', do
 byId.dockToggle.fire('click'); check('Controls button reopens it', !document.body.classList.contains('dock-closed'));
 if (byId.envBtn) byId.envBtn.classList.add('on');          // the real page ships it as class="on"
 byId.envBtn.fire('click'); check('Airport button toggles the environment off', !byId.envBtn.classList.contains('on')); byId.envBtn.fire('click'); check('...and back on', byId.envBtn.classList.contains('on'));
-check('hotspot markers created', byId.markers.children.length >= 16, `(${byId.markers.children.length})`);
 // rig buttons
 for (const r of ['premium', 'free', 'desk', 'tv']) { btn('[data-rig]', 'rig', r).fire('click'); }
 frames(200);
@@ -120,9 +118,9 @@ check('inside tour showed a caption', byId.capTitle.textContent.length > 0, JSON
 byId.capStop.fire('click'); frames(3);
 btn('[data-go]', 'go', 'back').fire('click'); frames(150);
 check('fly-to finished, orbit hint', byId.hint.textContent.includes('orbit'));
+frames(2);
+check('glow effects fall back cleanly when the renderer cannot do them', !byId.fxBtn.classList.contains('on'));
 btn('[data-tour]', 'tour', 'outside').fire('click');
 frames(4000);                                   // ~66 s of fake time: the whole outside tour is ~53 s
 check('outside tour ran to the end', byId.hint.textContent.includes('orbit'));
-// marker click -> info panel
-byId.markers.children[0].fire('click'); check('marker opens info panel', byId.info.hidden === false && byId.infoTitle.textContent.length > 0, byId.infoTitle.textContent);
 console.log(errors ? `${errors} SMOKE CHECK(S) FAILED` : 'EXPLORER OK'); process.exit(errors ? 1 : 0);
