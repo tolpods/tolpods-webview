@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Tolpod - explore the pod</title>
+  <link rel="preload" href="fonts/dm-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="css/style.css">
+  <script type="importmap">
+  { "imports": { "three": "./js/vendor/three.module.js", "three/addons/": "./js/vendor/addons/" } }
+  </script>
+</head>
+<body class="explorer">
+  <div id="stage"><canvas id="c"></canvas></div>
+
+  <div class="topbar">
+    <a class="back" href="index.html">&larr; Overview</a>
+    <span class="title">TOLPOD</span>
+    <button class="dock-toggle" id="dockToggle" type="button" aria-expanded="true" aria-controls="dock"><span class="bars" aria-hidden="true"></span>Controls</button>
+  </div>
+  <div class="hint" id="hint">Drag to orbit &middot; scroll or pinch to zoom</div>
+  <div class="toast" id="toast"></div>
+
+  <div class="caption" id="caption" hidden>
+    <h3 id="capTitle"></h3>
+    <p id="capText"></p>
+    <div class="row"><button id="capPause">Pause</button><button id="capNext">Next &rarr;</button><button id="capStop">Stop tour</button></div>
+  </div>
+
+  <div id="stick"><i></i></div>
+
+  <nav class="dock" id="dock" aria-label="Pod controls">
+    <div class="grp list"><span class="lab">View</span>
+      <button data-mode="orbit" class="on">Orbit</button>
+      <button data-mode="walk-in">Walk inside</button>
+      <button data-mode="walk-out">Walk outside</button>
+    </div>
+    <div class="grp"><span class="lab">Go to</span>
+      <button data-go="front">Entrance</button>
+      <button data-go="back">Back machines</button>
+      <button data-go="left">Left wall</button>
+      <button data-go="top">Top view</button>
+    </div>
+    <div class="grp list"><span class="lab">Tours</span>
+      <button data-tour="inside">Inside tour</button>
+      <button data-tour="outside">Outside tour</button>
+    </div>
+    <div class="grp list"><span class="lab">Pod</span>
+      <button data-rig="premium" data-label="Premium storage">Premium storage</button>
+      <button data-rig="free" data-label="Free storage">Free storage</button>
+      <button data-rig="desk" data-label="Pull-out desks">Pull-out desks</button>
+      <button data-rig="tv" data-label="TV">TV</button>
+      <button id="glassBtn">Glass: open</button>
+    </div>
+    <div class="grp chair"><span class="lab">Chair</span>
+      <button data-chair="0" class="on">Normal</button>
+      <button data-chair="1">Full recline</button>
+      <input type="range" id="recline" min="0" max="100" value="0" aria-label="Recline">
+    </div>
+    <div class="grp"><span class="lab">Show</span>
+      <button id="roofBtn" class="on">Roof</button>
+      <button id="lightBtn" class="on">Lights</button>
+      <button id="personBtn">Person</button>
+      <button id="fxBtn" class="on">Glow</button>
+      <button id="envBtn" class="on">Airport</button>
+    </div>
+  </nav>
+
+  <div id="nogl" hidden>
+    <div><h2>3D isn't available on this device</h2><p>Your browser doesn't support WebGL. Try Chrome, Edge, Firefox or Safari on a recent phone or computer.</p>
+    <a class="btn" href="index.html">&larr; Back to overview</a></div>
+  </div>
+
+  <script type="module" src="js/explorer.js"></script>
+</body>
+</html>

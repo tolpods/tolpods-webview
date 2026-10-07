@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tolpod - make room for rest</title>
+  <meta name="description" content="A calm, private place to reset between arrivals and departures. Explore the Tolpod in 3D.">
+  <link rel="preload" href="fonts/dm-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/instrument-serif-latin-400-italic.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="css/style.css">
+  <script type="importmap">
+  { "imports": { "three": "./js/vendor/three.module.js", "three/addons/": "./js/vendor/addons/" } }
+  </script>
+</head>
+<body>
+  <header class="nav">
+    <a class="brand" href="#top">TOLPOD</a>
+    <nav>
+      <a href="#features">Features</a>
+      <a class="btn primary" href="explorer.html">View the pod</a>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="copy">
+        <p class="eyebrow">A private pause, between places</p>
+        <h1>Make room for <em>rest.</em></h1>
+        <p class="lead">A calm, private place to reset inside the airport. Step inside the Tolpod and explore the details made for the hours between arrivals and departures.</p>
+        <div class="actions">
+          <a class="btn primary" href="explorer.html">View the pod &rarr;</a>
+          <a class="btn" href="#features">See what's inside</a>
+        </div>
+      </div>
+      <div class="viewer" id="viewer">
+        <img class="poster" src="assets/hero.jpg" alt="TOLPOD rest pod" onerror="this.remove()">
+        <canvas id="c" aria-label="Interactive 3D model of the TOLPOD, drag to rotate"></canvas>
+        <div class="viewer-ui">
+          <span>Drag to rotate 360&deg; &middot; scroll or pinch to zoom</span>
+          <button class="btn" id="roofBtn" type="button">Show roof</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="block" id="features">
+      <h2>Everything you need, in <em>one small</em> pod</h2>
+      <p class="sub">Open the storage, pull out the desk and recline the chair in the 3D explorer.</p>
+      <div class="features" id="featureGrid"></div>
+    </section>
+
+    <section class="block">
+      <div class="cta-band">
+        <h2>Walk through it <em>yourself</em></h2>
+        <p class="sub" style="margin:0 auto 1.2rem">Orbit the whole pod, walk inside, open the storage, pull out the desk, and recline the chair into a bed.</p>
+        <a class="btn primary" href="explorer.html">View the pod &rarr;</a>
+      </div>
+    </section>
+  </main>
+  <footer>TOLPOD &middot; interactive 3D preview &middot; dimensions from the product design sheet</footer>
+
+  <script type="module" src="js/landing.js"></script>
+</body>
+</html>
