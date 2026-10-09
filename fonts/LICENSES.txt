@@ -1,8 +1,0 @@
-Fonts bundled with this site (all licensed under the SIL Open Font License 1.1, https://openfontlicense.org):
-
-- DM Sans (variable)       Copyright 2014 The DM Sans Project Authors
-- DM Mono                  Copyright 2020 The DM Mono Project Authors
-- Instrument Serif         Copyright 2022 The Instrument Serif Project Authors
-- IBM Plex Mono (fallback) Copyright 2017 IBM Corp.
-
-Packaged from the @fontsource npm packages. The OFL permits bundling, use and redistribution with this website.
