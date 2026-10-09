@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tolpods - your private airport escape</title>
+  <meta name="description" content="Tolpods: a calm, private place to reset inside the airport. Relax, recharge and reclaim your layover. Explore the pod in 3D.">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <meta name="theme-color" content="#e9e5dd">
+  <link rel="canonical" href="https://YOUR-USERNAME.github.io/tolpod-web/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Tolpod">
+  <meta property="og:title" content="Tolpods - your private airport escape">
+  <meta property="og:description" content="Private rest pods for airports. Explore the Tolpod in 3D: walk inside, open the storage and recline the chair into a bed.">
+  <meta property="og:url" content="https://YOUR-USERNAME.github.io/tolpod-web/">
+  <meta property="og:image" content="https://YOUR-USERNAME.github.io/tolpod-web/assets/og.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="The Tolpod rest pod in 3D, sage green with timber interior">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Tolpods - your private airport escape">
+  <meta name="twitter:description" content="Private rest pods for airports. Explore the Tolpod in 3D.">
+  <meta name="twitter:image" content="https://YOUR-USERNAME.github.io/tolpod-web/assets/og.jpg">
+  <link rel="preload" href="fonts/dm-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/instrument-serif-latin-400-italic.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="css/style.css">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"Organization","name":"TolPods Inc.","description":"Private rest pods in airports.","address":{"@type":"PostalAddress","addressLocality":"Las Vegas","addressRegion":"NV"}}</script>
+  <script type="importmap">
+  { "imports": { "three": "./js/vendor/three.module.js", "three/addons/": "./js/vendor/addons/" } }
+  </script>
+</head>
+<body>
+  <header class="nav">
+    <a class="brand" href="#top"><img class="logo" src="favicon.svg" alt="" width="26" height="26">tolpods</a>
+    <nav>
+      <a class="btn" href="#waitlist">Book a pod</a>
+      <a class="btn primary" href="#waitlist">Join waitlist</a>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="copy">
+        <p class="eyebrow">tolpods</p>
+        <h1>Your private airport <em>escape</em></h1>
+        <p class="lead">A calm, private place to reset inside the airport.</p>
+        <p class="lead sec">Relax, recharge &amp; reclaim your layover.</p>
+        <div class="actions">
+          <a class="btn primary" href="explorer.html">View the pod &rarr;</a>
+          <a class="btn" href="#features">View features</a>
+        </div>
+      </div>
+      <div class="viewer" id="viewer">
+        <img class="poster" src="assets/hero.jpg" alt="Tolpods rest pod" onerror="this.remove()">
+        <canvas id="c" aria-label="Interactive 3D model of the pod, drag to rotate"></canvas>
+        <div class="viewer-ui">
+          <span>Drag to rotate 360&deg; &middot; scroll or pinch to zoom</span>
+          <button class="btn" id="roofBtn" type="button">Show roof</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="block" id="features">
+      <h2>Everything you need, in <em>one pod</em></h2>
+      <div class="features six">
+        <div class="card"><h3>Massage chair</h3><p>A full-size chair that reclines into a flat bed.</p></div>
+        <div class="card"><h3>Entertainment &amp; WiFi</h3><p>A widescreen TV and complimentary high-speed WiFi.</p></div>
+        <div class="card"><h3>Storage</h3><p>Free and premium lockers for your luggage and valuables.</p></div>
+        <div class="card"><h3>Pillows &amp; blankets</h3><p>Fresh, ready to use, so you can actually sleep.</p></div>
+        <div class="card"><h3>Food &amp; snacks</h3><p>A minibar and fridge, stocked with drinks and snacks.</p></div>
+        <div class="card"><h3>Vending machines</h3><p>Cold drinks and essentials right outside the pod.</p></div>
+      </div>
+    </section>
+
+    <section class="block" id="how">
+      <h2>How do you <em>book</em> the pod?</h2>
+      <ol class="steps">
+        <li><b>Choose location</b><span>Pick an airport with an available pod.</span></li>
+        <li><b>Pick your pod</b><span>Select the pod you want.</span></li>
+        <li><b>Reserve a pod slot</b><span>Book in 30-minute increments, 24 hours a day.</span></li>
+        <li><b>Relax &amp; recharge</b><span>Step in and take your time.</span></li>
+      </ol>
+    </section>
+
+    <section class="block locs" id="airports">
+      <h2>Coming soon at your nearest <em>airports</em>, and at</h2>
+      <ul class="board">
+        <li><span class="code">PHX</span><span>Phoenix Sky Harbor Airport</span><span class="st">Coming soon</span></li>
+        <li><span class="code">LAS</span><span>Las Vegas Airport</span><span class="st">Coming soon</span></li>
+      </ul>
+    </section>
+
+    <section class="block" id="waitlist">
+      <div class="duo">
+        <form class="panel" id="waitForm">
+          <h2>Join the <em>waitlist</em></h2>
+          <p class="sub">Early access and launch offers, as soon as a pod opens near you.</p>
+          <label>Name<input name="name" required autocomplete="name"></label>
+          <label>Email<input type="email" name="email" required autocomplete="email"></label>
+          <button class="btn primary" type="submit">Join waitlist</button>
+          <p class="thanks" role="status" hidden>Thank you &mdash; you're on the list.</p>
+        </form>
+        <div class="panel" id="contact">
+          <h2>Link</h2>
+          <p class="links"><a href="#" rel="noopener">Social media</a><a href="mailto:hello@tolpods.com">Contact us</a></p>
+          <form id="contactForm">
+            <div class="two"><label>Name<input name="name" required autocomplete="name"></label>
+            <label>Email<input type="email" name="email" required autocomplete="email"></label></div>
+            <label>Message<textarea name="message" rows="4" required></textarea></label>
+            <button class="btn primary" type="submit">Send</button>
+            <p class="thanks" role="status" hidden>Thank you &mdash; we'll be in touch.</p>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-foot">
+    <div class="legal">&copy; 2026 TolPods Inc. All rights reserved. &middot; Las Vegas, NV &middot; <a href="explorer.html">View the pod</a> &middot; <a href="#contact">Contact</a></div>
+  </footer>
+
+  <script type="module" src="js/landing.js"></script>
+  <script>
+  // reveal the flight board and the steps as they scroll into view
+  (() => {
+    const els = document.querySelectorAll('.board, .steps');
+    if (!('IntersectionObserver' in window)) return;
+    els.forEach(l => [...l.children].forEach((li, i) => li.style.setProperty('--i', i)));
+    document.documentElement.classList.add('rv');
+    const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { threshold: 0.25 });
+    els.forEach(l => io.observe(l));
+  })();
+  </script>
+  <script>
+  // No backend yet: set WAITLIST_ENDPOINT to POST sign-ups somewhere real.
+  const WAITLIST_ENDPOINT = '';
+  for (const id of ['waitForm', 'contactForm']) {
+    const f = document.getElementById(id);
+    f.addEventListener('submit', async e => {
+      e.preventDefault();
+      if (WAITLIST_ENDPOINT) { try { await fetch(WAITLIST_ENDPOINT, { method: 'POST', body: new FormData(f) }); } catch (_) {} }
+      f.querySelector('.thanks').hidden = false;
+      f.querySelectorAll('input,textarea,button').forEach(x => x.disabled = true);
+    });
+  }
+  </script>
+</body>
+</html>
