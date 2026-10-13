@@ -26,16 +26,16 @@ const byId = {};
 const page = process.argv[2] || 'explorer';
 const ids = page === 'explorer'
   ? ['c', 'stage', 'toast', 'hint', 'caption', 'capTitle', 'capText', 'capPause', 'capNext', 'capStop', 'stick', 'dock', 'dockToggle', 'recline', 'glassBtn', 'roofBtn', 'lightBtn', 'personBtn', 'fxBtn', 'envBtn', 'nogl']
-  : ['c', 'viewer', 'roofBtn', 'featureGrid'];
+  : ['c', 'viewer', 'roofBtn'];
 ids.forEach((i) => { byId[i] = el(); });
 if (byId.stick) byId.stick.querySelector = () => el();
-if (byId.recline) byId.recline.value = '0';
+if (byId.recline) byId.recline.value = '45';
 const groups = {
   '[data-mode]': ['orbit', 'walk-in', 'walk-out'].map((m) => el({ mode: m })),
   '[data-go]': ['front', 'back', 'left', 'top'].map((g) => el({ go: g })),
   '[data-tour]': ['inside', 'outside'].map((t) => el({ tour: t })),
-  '[data-rig]': [['premium', 'Premium storage'], ['free', 'Free storage'], ['desk', 'Pull-out desks'], ['tv', 'TV']].map(([r, l]) => el({ rig: r, label: l })),
-  '[data-chair]': ['0', '1'].map((c) => el({ chair: c })),
+  '[data-rig]': [['premium', 'Premium storage'], ['desk', 'Pull-out desks'], ['legext', 'Leg extension'], ['tv', 'TV'], ['roof', 'Fire vent']].map(([r, l]) => el({ rig: r, label: l })),
+  '[data-chair]': [['0',''],['1',''],['0.45','1']].map(([c,x]) => el({ chair: c, ext: x || undefined })),
 };
 const select = (s) => (s.startsWith('#') ? byId[s.slice(1)] || el() : s === '.viewer-ui' || s === '.viewer-ui span' ? el() : el());
 const win = new Map();
@@ -87,19 +87,21 @@ byId.dockToggle.fire('click'); check('Controls button reopens it', !document.bod
 if (byId.envBtn) byId.envBtn.classList.add('on');          // the real page ships it as class="on"
 byId.envBtn.fire('click'); check('Airport button toggles the environment off', !byId.envBtn.classList.contains('on')); byId.envBtn.fire('click'); check('...and back on', byId.envBtn.classList.contains('on'));
 // rig buttons
-for (const r of ['premium', 'free', 'desk', 'tv']) { btn('[data-rig]', 'rig', r).fire('click'); }
-frames(200);
+for (const r of ['premium', 'desk', 'tv', 'roof']) { btn('[data-rig]', 'rig', r).fire('click'); }
+frames(500);
 check('rig labels update', btn('[data-rig]', 'rig', 'premium').textContent === 'Premium storage: Open' && btn('[data-rig]', 'rig', 'desk').textContent === 'Pull-out desks: Out', btn('[data-rig]', 'rig', 'premium').textContent);
 btn('[data-chair]', 'chair', '1').fire('click'); frames(3);
 check('recline blocked while desks are out', byId.toast.textContent.includes('Return the chair') || byId.toast.textContent.includes('desks'), JSON.stringify(byId.toast.textContent));
 btn('[data-rig]', 'rig', 'desk').fire('click'); frames(300);
-btn('[data-chair]', 'chair', '1').fire('click'); frames(500);
+btn('[data-chair]', 'chair', '1').fire('click'); frames(800);
 check('chair reaches full recline', +byId.recline.value === 100, 'slider=' + byId.recline.value);
+btn('[data-chair]', 'chair', '0.45').fire('click'); frames(500);
+check('chair back to normal 110 deg', +byId.recline.value === 45, 'slider=' + byId.recline.value);
 btn('[data-chair]', 'chair', '0').fire('click'); frames(500);
-check('chair back to normal', +byId.recline.value === 0, 'slider=' + byId.recline.value);
+check('chair upright', +byId.recline.value === 0, 'slider=' + byId.recline.value);
 byId.recline.value = '60'; byId.recline.fire('input'); frames(3);
 check('slider scrubs the chair', true);
-byId.recline.value = '0'; byId.recline.fire('input'); frames(3);
+byId.recline.value = '45'; byId.recline.fire('input'); frames(3);
 byId.glassBtn.fire('click'); byId.glassBtn.fire('click'); frames(100);
 check('glass cycles to layers 1+2', byId.glassBtn.textContent === 'Glass: layers 1+2', byId.glassBtn.textContent);
 byId.glassBtn.fire('click'); frames(100);

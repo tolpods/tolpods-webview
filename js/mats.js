@@ -128,13 +128,12 @@ export const tex = {
       return [52 * k, 54 * k, 57 * k];
     });
   },
-  wordmark() {                                                // big mark for the right wall: 96" x 22", transparent background
-    const w = 2048, h = 469, c = newCanvas(w, h), g = c.getContext('2d');
-    g.textBaseline = 'alphabetic'; g.textAlign = 'left'; g.fillStyle = '#ebe4d2';
-    const fs = fitFont(g, 'TOLPOD', '700', SANS, h * 0.66, w * 0.6); spaced(g, fs * 0.14); g.fillText('TOLPOD', 12, h * 0.62); spaced(g, 0);
-    g.fillRect(14, h * 0.74, w * 0.9, 3);
-    g.fillStyle = 'rgba(235,228,210,0.8)'; g.font = `500 ${Math.round(h * 0.11)}px ${MONO}`; spaced(g, h * 0.018);
-    g.fillText('PRIVATE REST POD   -   UNIT TP-01   -   TOLPOD.COM', 14, h * 0.93); spaced(g, 0);
+  stripMark() {                                               // top strip mark on both side walls: 140" x 14"
+    const w = 2048, h = 205, c = newCanvas(w, h), g = c.getContext('2d');
+    g.textBaseline = 'middle'; g.textAlign = 'left'; g.fillStyle = '#ffffff';
+    const fs = fitFont(g, 'TOLPODS', '700', SANS, h * 0.78, w * 0.5); spaced(g, fs * 0.16); g.fillText('TOLPODS', 40, h * 0.52); spaced(g, 0);
+    g.fillStyle = '#cdbb8f'; g.font = `500 ${Math.round(h * 0.2)}px ${MONO}`; g.textAlign = 'right'; spaced(g, 5);
+    g.fillText('YOUR PRIVATE AIRPORT ESCAPE', w - 44, h * 0.52); spaced(g, 0);
     return uiTex(c);
   },
   plate() {                                                   // stainless data plate, 24" x 10"
@@ -143,7 +142,7 @@ export const tex = {
     g.fillStyle = gr; g.fillRect(0, 0, w, h);
     g.strokeStyle = 'rgba(0,0,0,0.35)'; g.lineWidth = 4; g.strokeRect(14, 14, w - 28, h - 28);
     g.fillStyle = '#26282a'; g.textBaseline = 'middle'; g.textAlign = 'left';
-    g.font = `700 64px ${SANS}`; spaced(g, 8); g.fillText('TOLPOD', 44, 70); spaced(g, 0);
+    g.font = `700 64px ${SANS}`; spaced(g, 8); g.fillText('TOLPODS', 44, 70); spaced(g, 0);
     g.font = `500 34px ${MONO}`;
     ['MODEL TP-1        UNIT 0001', '90 x 144 x 94 IN    OCC. 1', 'WHEELS LOCKED WHEN PARKED', 'SERVICE: 120 V / 15 A'].forEach((t, i) => g.fillText(t, 44, 150 + i * 62));
     for (const [x, y] of [[40, 40], [w - 40, 40], [40, h - 40], [w - 40, h - 40]]) { g.fillStyle = '#8d9093'; g.beginPath(); g.arc(x, y, 9, 0, Math.PI * 2); g.fill(); }
@@ -196,7 +195,7 @@ export const tex = {
     const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#0f1416'); gr.addColorStop(1, '#1d2b2e'); g.fillStyle = gr; g.fillRect(0, 0, w, h);
     g.textBaseline = 'middle'; g.textAlign = 'left'; g.fillStyle = '#8f9b98'; g.font = `500 22px ${MONO}`; g.fillText('09:41', 36, 44);
     g.textAlign = 'right'; g.fillText('WI-FI  100%', w - 36, 44);
-    g.textAlign = 'center'; g.fillStyle = '#d9a95a'; g.font = `italic 400 104px ${SERIF}`; g.fillText('Tolpod', w / 2, 150);
+    g.textAlign = 'center'; g.fillStyle = '#d9a95a'; g.font = `italic 400 104px ${SERIF}`; g.fillText('Tolpods', w / 2, 150);
     g.fillStyle = '#8f9b98'; g.font = `500 20px ${MONO}`; spaced(g, 3); g.fillText('A PRIVATE PAUSE, BETWEEN PLACES', w / 2, 222); spaced(g, 0);
     const tiles = [['Drinks', 0], ['Snacks', 1], ['Rest', 2], ['Info', 3]];
     tiles.forEach(([label, k], i) => {
@@ -239,21 +238,24 @@ export const tex = {
     g.font = `italic 400 120px ${SERIF}`; g.fillText('Calm', 48, 470);
     return uiTex(c);
   },
-  adScreen() {                                               // ad screen on the left wall, 16:9
-    const w = 1024, h = 560, c = newCanvas(w, h), g = c.getContext('2d');
-    g.fillStyle = '#e9e5dd'; g.fillRect(0, 0, w, h);
+  sideTv() {                                                 // big wall TV on both outer side walls, 92" x 58"
+    const w = 1472, h = 928, c = newCanvas(w, h), g = c.getContext('2d');
+    const gr = g.createLinearGradient(0, 0, w, h); gr.addColorStop(0, '#9db08f'); gr.addColorStop(0.55, '#e4e2d0'); gr.addColorStop(1, '#f6f2e9');
+    g.fillStyle = gr; g.fillRect(0, 0, w, h);
+    g.fillStyle = 'rgba(246,242,233,0.35)'; g.beginPath(); g.arc(w * 0.86, h * 0.2, 330, 0, Math.PI * 2); g.fill();
     g.textBaseline = 'alphabetic'; g.textAlign = 'left';
-    g.fillStyle = '#987347'; g.font = `500 22px ${MONO}`; spaced(g, 4); g.fillText('TOLPOD  -  A PRIVATE PAUSE', 64, 96); spaced(g, 0);
-    g.fillStyle = '#272622'; g.font = `400 100px ${SANS}`; spaced(g, -3); g.fillText('Make room for', 60, 230); spaced(g, 0);
-    g.fillStyle = '#987347'; g.font = `italic 400 170px ${SERIF}`; g.fillText('rest.', 60, 380);
-    rr(g, 64, 428, 300, 64, 32); g.fillStyle = '#272622'; g.fill();
-    g.fillStyle = '#f3efe7'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = `600 26px ${SANS}`; g.fillText('Scan to book', 214, 462);
+    g.fillStyle = '#5a4426'; g.font = `600 34px ${MONO}`; spaced(g, 8); g.fillText('TOLPODS', 100, 150); spaced(g, 0);
+    g.fillStyle = '#232b1f'; g.font = `700 150px ${SANS}`; spaced(g, -4);
+    g.fillText('Your private', 94, 380); g.fillText('airport escape', 94, 540); spaced(g, 0);
+    g.fillStyle = '#3f4a37'; g.font = `400 46px ${SANS}`; g.fillText('Relax, recharge, and reclaim your layover.', 100, 640);
+    rr(g, 100, 716, 540, 98, 49); g.fillStyle = '#232b1f'; g.fill();
+    g.fillStyle = '#ffffff'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = `600 44px ${SANS}`; g.fillText('Book a pod at tolpods.com', 370, 767);
     return uiTex(c);
   },
   brandBar() {                                               // header above the touch screen, 4:1
     const w = 1024, h = 256, c = newCanvas(w, h), g = c.getContext('2d');
     g.fillStyle = '#101315'; g.fillRect(0, 0, w, h); g.fillStyle = '#d9a95a'; g.fillRect(0, h - 8, w, 8);
-    g.fillStyle = '#f3efe7'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = `500 98px ${MONO}`; spaced(g, 22); g.fillText('TOLPOD', w / 2 + 11, h * 0.46); spaced(g, 0);
+    g.fillStyle = '#f3efe7'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = `500 98px ${MONO}`; spaced(g, 22); g.fillText('TOLPODS', w / 2 + 11, h * 0.46); spaced(g, 0);
     return uiTex(c);
   },
   sign(text, color = '#e0b55a', w = 512, h = 128, bg = null, style = 'sans') {
@@ -287,7 +289,7 @@ export function makeMaterials(theme = 'zen_sage') {
   M.hvac = std({ color: 0xc9cbcd, roughness: 0.5, metalness: 0.5 });
   M.safety = std({ color: 0xe0b01c, roughness: 0.6 });
   M.skirt = std({ color: 0xffd9a0, emissive: 0xffa24a, emissiveIntensity: 0.9, roughness: 0.5 });
-  M.wordmark = std({ map: tex.wordmark(), transparent: true, roughness: 0.55, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
+  M.stripMark = std({ map: tex.stripMark(), transparent: true, roughness: 0.55, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
   M.plate = std({ map: tex.plate(), roughness: 0.35, metalness: 0.6, polygonOffset: true, polygonOffsetFactor: -2 });
   M.ceil = std({ map: tex.plaster([0.9, 0.87, 0.8]), roughness: 0.9 }, 48);
   M.ground = std({ map: tex.pavers([117, 115, 110], [92, 90, 87]), roughness: 0.8 });
@@ -296,15 +298,15 @@ export function makeMaterials(theme = 'zen_sage') {
   M.rugDark = std({ color: 0x4d3d2e, roughness: 1 });
   M.steel = std({ color: 0xc4c6c9, roughness: 0.32, metalness: 1 });
   M.brass = std({ color: 0xd1a050, roughness: 0.3, metalness: 1 });
-  M.bronze = std({ color: 0x1a130e, roughness: 0.4, metalness: 1 });
+  M.bronze = std({ color: 0xa9835a, roughness: 0.35, metalness: 1 });
   M.graphite = std({ color: 0x0c0c0e, roughness: 0.4, metalness: 0.8 });
   M.black = std({ color: 0x050506, roughness: 0.35 });
   M.white = std({ color: 0xece9e2, roughness: 0.25 });
   M.rubber = std({ color: 0x050505, roughness: 0.9 });
-  M.shell = phys({ color: 0x0a0a0c, roughness: 0.22, metalness: 0.1, clearcoat: 1, clearcoatRoughness: 0.08 });
-  M.leather = phys({ color: 0x0c0c0e, roughness: 0.48, bumpMap: k, bumpScale: 0.6, clearcoat: 0.25, clearcoatRoughness: 0.35, sheen: 0.4, sheenColor: new THREE.Color(0x222226) });
-  M.leather2 = phys({ color: 0x151518, roughness: 0.5, bumpMap: k, bumpScale: 0.6, clearcoat: 0.25, clearcoatRoughness: 0.35 });
-  const qb = tex.quilt([0.07, 0.07, 0.08].map((v) => v * 255), false), qh = tex.quilt(null, true);
+  M.shell = phys({ color: 0x2d2723, roughness: 0.25, metalness: 0.1, clearcoat: 1, clearcoatRoughness: 0.08 });
+  M.leather = phys({ color: 0xa38a6b, roughness: 0.48, bumpMap: k, bumpScale: 0.6, clearcoat: 0.25, clearcoatRoughness: 0.35, sheen: 0.4, sheenColor: new THREE.Color(0xd9c7a8) });
+  M.leather2 = phys({ color: 0xb09b7e, roughness: 0.5, bumpMap: k, bumpScale: 0.6, clearcoat: 0.25, clearcoatRoughness: 0.35 });
+  const qb = tex.quilt([0.62, 0.52, 0.40].map((v) => v * 255), false), qh = tex.quilt(null, true);
   qb.repeat.set(2.5, 2.5); qh.repeat.set(2.5, 2.5);
   M.quilt = phys({ map: qb, bumpMap: qh, bumpScale: 2.2, roughness: 0.5, clearcoat: 0.3, clearcoatRoughness: 0.35 });
   M.glass = phys({ color: 0xf2fbff, roughness: 0.04, metalness: 0, transparent: true, opacity: 0.1, side: THREE.DoubleSide, depthWrite: false, envMapIntensity: 1.2 });
@@ -331,7 +333,7 @@ export function makeMaterials(theme = 'zen_sage') {
   M.suitcase = std({ color: 0x23324f, roughness: 0.5 });
   M.suitcase2 = std({ color: 0x6b2a2a, roughness: 0.5 });
   const screen = (map) => new THREE.MeshBasicMaterial({ map, toneMapped: false });      // screens glow with their own colours
-  M.screenTv = screen(tex.tvScene()); M.screenAd = screen(tex.adScreen()); M.screenKiosk = screen(tex.kiosk());
+  M.screenTv = screen(tex.tvScene()); M.screenSide = screen(tex.sideTv()); M.screenKiosk = screen(tex.kiosk());
   M.screenKey = screen(tex.keypad()); M.screenBrand = screen(tex.brandBar()); M.screenUi = M.screenKiosk;
   M.vend = std({ color: 0xf4efe6, emissive: 0xfff1dc, emissiveIntensity: 0.55, roughness: 0.6 });      // soft light behind the products
   M.light = TH.light;

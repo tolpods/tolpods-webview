@@ -173,19 +173,17 @@ function flyTo(key) {
 
 const TOURS = {
   outside: [
-    { pos: [38.5, 330, 80], look: [38.5, 144, 50], move: 3, dwell: 3.4, title: 'The entrance', text: 'A 30″ pathway into the pod. Free storage and the coat station are on the left, the fridge block and premium storage on the right.' },
+    { pos: [38.5, 330, 80], look: [38.5, 144, 50], move: 3, dwell: 3.4, title: 'The entrance', text: 'A 30″ pathway into the pod. The entrance end is open floor, with premium storage on the right.' },
     { pos: [160, -120, 75], look: [76, 0, 55], move: 5, dwell: 3.4, title: 'Snack vending (12)', text: '15″ × 48″ × 92″. Five rows plus a 20″ drop bay for your purchase.' },
     { pos: [45, -150, 80], look: [55, 0, 55], move: 4, dwell: 3.4, title: 'Touch screen (13) and cold storage (11)', text: 'An interactive screen for ads and content, with refrigerated stock behind it.' },
     { pos: [-20, -130, 75], look: [23, 0, 55], move: 4, dwell: 3.4, title: 'Refrigerated vending (14)', text: '39″ × 48″ × 92″. Cold drinks and snacks, with complimentary and paid items. It also opens to the inside of the pod.' },
     { pos: [-195, 72, 75], look: [0, 72, 45], move: 5, dwell: 3.4, title: 'Ad screen', text: 'The left wall carries a regular TV for ads.' },
-    { pos: [-110, 230, 85], look: [30, 144, 50], move: 4, dwell: 2.4, title: 'Back to the entrance', text: 'That is the public side of TOLPOD. Try the inside tour next.' },
+    { pos: [-110, 230, 85], look: [30, 144, 50], move: 4, dwell: 2.4, title: 'Back to the entrance', text: 'That is the public side of TOLPODS. Try the inside tour next.' },
   ],
   inside: [
     { pos: [38.5, 190, 66], look: [38.5, 140, 52], move: 2.5, dwell: 2.4, title: 'Stepping in', text: 'The ramp leads to a 30″ wide entrance. Two optional glass layers can close it for privacy.' },
-    { pos: [38.5, 130, 62], look: [40, 112, 48], move: 4, dwell: 2.8, title: 'The pathway', text: '28″ long, between the coat station and the fridge block. The TV rail runs overhead.' },
-    { pos: [38.5, 127, 62], look: [19, 132, 50], move: 2, dwell: 2.8, title: 'Coat station (4)', text: '8″ × 28″ × 60″ with hangers, hooks and a full-length mirror.' },
-    { pos: [38.5, 127, 62], look: [62, 130, 58], move: 2, dwell: 3, title: 'Fridge, microwave, surprise box (5)', text: 'Mini fridge, microwave, a 12.8″ gift compartment for charity donations, and a tall cabinet.' },
-    { pos: [38.5, 112, 62], look: [39.5, 78, 36], move: 3.5, dwell: 3, title: 'The massage chair (1)', text: 'Sit at normal height, or use the recline control to flatten it into a 75″ bed.' },
+    { pos: [38.5, 130, 62], look: [40, 112, 48], move: 4, dwell: 2.8, title: 'The pathway', text: 'The entrance end is open floor. The TV rail runs overhead.' },
+    { pos: [38.5, 112, 62], look: [39.5, 78, 36], move: 3.5, dwell: 3, title: 'The massage chair (1)', text: 'Sit at normal height, or use the recline control to lay it back from upright, through the 110° pose of the design sheet, to full zero-gravity recline. The leg extension adds 10″ (83″ overall).' },
     { pos: [38.5, 112, 62], look: [9.5, 95, 40], move: 2.5, dwell: 3, title: 'Pillows & blankets (8)', text: 'Fifteen packets in three divisions, released one at a time from the app.' },
     { pos: [38.5, 110, 62], look: [9.5, 61, 30], move: 2.5, dwell: 3, title: 'Weight-sensor minibar (9)', text: 'A smart shelf with 36 items, and cleaning supplies below.' },
     { pos: [48, 110, 62], look: [73.5, 84, 28], move: 2.5, dwell: 3, title: 'Smart trash (10)', text: 'Four rotating 10″ cans with compactors and a no-touch opening.' },
@@ -243,7 +241,7 @@ if (narrow.addEventListener) narrow.addEventListener('change', (e) => setDock(!e
 $$('[data-mode],[data-go],[data-tour]').forEach((b) => b.addEventListener('click', () => { if (narrow.matches) setDock(false); }));
 
 // ---------------------------------------------------------------- pod controls
-const STATE_WORDS = { premium: ['Closed', 'Open'], free: ['Closed', 'Open'], desk: ['Stowed', 'Out'], tv: ['Stowed', 'Watching'] };
+const STATE_WORDS = { premium: ['Closed', 'Open'], roof: ['Closed', 'Open'], desk: ['Stowed', 'Out'], legext: ['Retracted', 'Out'], tv: ['Stowed', 'Watching'] };
 $$('[data-rig]').forEach((b) => b.addEventListener('click', () => { const msg = pod.api.toggle(b.dataset.rig); if (msg) toast(msg); }));
 function refreshButtons() {
   $$('[data-rig]').forEach((b) => {
@@ -251,7 +249,8 @@ function refreshButtons() {
     b.classList.toggle('on', on); b.textContent = `${b.dataset.label}: ${STATE_WORDS[n][on ? 1 : 0]}`;
   });
   const c = pod.api.state('chair');
-  $$('[data-chair]').forEach((b) => b.classList.toggle('on', (b.dataset.chair === '1') === (c > 0.5)));
+  const e = pod.api.get('legext');
+  $$('[data-chair]').forEach((b) => b.classList.toggle('on', Math.abs(+b.dataset.chair - c) < 0.08 && (b.dataset.ext ? e > 0.5 : e < 0.5)));
   if (!sliding) slider.value = Math.round(c * 100);
 }
 let gstate = 0;
@@ -261,11 +260,17 @@ $('#glassBtn').addEventListener('click', () => {
   $('#glassBtn').textContent = ['Glass: open', 'Glass: layer 1', 'Glass: layers 1+2'][gstate];
   $('#glassBtn').classList.toggle('on', gstate > 0);
 });
-$$('[data-chair]').forEach((b) => b.addEventListener('click', () => { const msg = pod.api.set('chair', +b.dataset.chair); if (msg) toast(msg); }));
+let extWait = 0;
+$$('[data-chair]').forEach((b) => b.addEventListener('click', () => {      // three poses: Upright, Zero gravity, Leg extension (110 deg with the leg extension out)
+  clearInterval(extWait);
+  if (!b.dataset.ext && pod.api.get('legext') > 0) pod.api.set('legext', 0);
+  const msg = pod.api.set('chair', +b.dataset.chair); if (msg) toast(msg);
+  if (b.dataset.ext) { let n = 0; extWait = setInterval(() => { if (pod.api.state('chair') <= 0.55 || ++n > 150) { clearInterval(extWait); const m = pod.api.set('legext', 1); if (m) toast(m); } }, 80); }
+}));
 const slider = $('#recline'); let sliding = false;
 slider.addEventListener('pointerdown', () => { sliding = true; });
 addEventListener('pointerup', () => { sliding = false; });
-slider.addEventListener('input', () => { const msg = pod.api.scrub('chair', slider.value / 100); if (msg) { toast(msg); slider.value = 0; } });
+slider.addEventListener('input', () => { const msg = pod.api.scrub('chair', slider.value / 100); if (msg) { toast(msg); slider.value = Math.round(pod.api.state('chair') * 100); } });
 
 const toggler = (id, fn) => { const b = $(id); b.addEventListener('click', () => { const on = !b.classList.contains('on'); b.classList.toggle('on', on); fn(on); }); };
 toggler('#roofBtn', (on) => pod.api.setRoof(on));

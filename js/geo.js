@@ -110,3 +110,20 @@ export class Batch {
     this.map.clear();
   }
 }
+
+// A thin triangular panel (a prism) with three material groups: 0 = top face, 1 = underside, 2 = edges. Points in the panel's own frame, t = thickness.
+export function triPanel(a, b, c, t, tile = 48) {
+  const A = new THREE.Vector3(...a), B = new THREE.Vector3(...b), C = new THREE.Vector3(...c);
+  const u = B.clone().sub(A).normalize(), n = B.clone().sub(A).cross(C.clone().sub(A)).normalize(), v = n.clone().cross(u);
+  const o = n.clone().multiplyScalar(t / 2);
+  const T = [A, B, C].map((p) => p.clone().add(o)), U = [A, B, C].map((p) => p.clone().sub(o));
+  const pos = [], uv = [], push = (p) => { pos.push(p.x, p.y, p.z); uv.push(p.clone().sub(A).dot(u) / tile, p.clone().sub(A).dot(v) / tile); };
+  const quad = (p, q, r, s) => { [p, q, r, p, r, s].forEach(push); };
+  [T[0], T[1], T[2]].forEach(push);                       // top (counter-clockwise seen from +n)
+  [U[0], U[2], U[1]].forEach(push);                       // underside
+  quad(T[0], U[0], U[1], T[1]); quad(T[1], U[1], U[2], T[2]); quad(T[2], U[2], U[0], T[0]);   // edges
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  g.addGroup(0, 3, 0); g.addGroup(3, 3, 1); g.addGroup(6, 18, 2); g.computeVertexNormals();
+  return g;
+}

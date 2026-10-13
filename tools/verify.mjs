@@ -16,9 +16,12 @@ export async function resolve(spec, context, next) {
 register('data:text/javascript,' + encodeURIComponent(loader), import.meta.url);
 const THREE = await import(pathToFileURL(path.join(here, '../js/vendor/three.module.js')).href);
 const { buildPod } = await import(pathToFileURL(path.join(here, '../js/pod.js')).href);
+const { RISE } = await import(pathToFileURL(path.join(here, '../js/chair.js')).href);
 const { SPEC: S } = await import(pathToFileURL(path.join(here, '../js/spec.js')).href);
 
 const pod = buildPod();
+const K = S.chair.scale;                                    // the chair is built at 90% of the sheet (design change), so sheet sizes are multiplied by K
+const near = (a, b, tol = 0.02) => Math.abs(a - b) < tol;
 const rows = []; const ok = (name, spec, got, pass) => rows.push([pass ? 'OK ' : 'XX ', name, spec, got]);
 const f = (v) => +v.toFixed(2);
 const bbox = (obj) => { obj.updateMatrixWorld(true); return new THREE.Box3().setFromObject(obj); };
@@ -31,42 +34,55 @@ const find = (name) => { const out = []; pod.root.traverse((o) => { if (o.name =
 let draw = 0; pod.root.traverse((o) => { if (o.isMesh) draw++; });
 console.log('meshes in scene:', draw);
 
-// ---- chair, sitting
-const chairBox = (pred) => { pod.root.updateMatrixWorld(true); const b = new THREE.Box3(); pod.root.traverse((o) => { if (o.isMesh && pred(o.name)) b.union(new THREE.Box3().setFromObject(o)); }); return planBox(b); };
-let hb = chairBox((n) => n === 'chair.headrest'); ok('headrest thick / wide / long', '18 / 34 / 9', `${len(hb.y)} / ${len(hb.x)} / ${len(hb.z)}`, len(hb.y) === 18 && len(hb.x) === 34 && len(hb.z) === 9);
-let sc = chairBox((n) => n === 'chair.seatCushion'); ok('seat long / wide', '25 / 37', `${len(sc.y)} / ${len(sc.x)}`, len(sc.y) === 25 && len(sc.x) === 37);
-let ar = chairBox((n) => n === 'chair.ArmMid'); ok('middle armrest long', '12', `${len(ar.y)}`, len(ar.y) === 12);
-ar = chairBox((n) => n === 'chair.ArmL'); ok('side armrest long / wide', '15 / 4.5', `${len(ar.y)} / ${len(ar.x)}`, len(ar.y) === 15 && len(ar.x) === 4.5);
-const legSit = chairBox((n) => n === 'chair.calfPod' || n === 'chair.footCradle');
-const cupCount = find('chair.cup').length; ok('cupholder parts (9 x ring+well)', '18', `${cupCount}`, cupCount === 18);
-const wholeChair = chairBox((n) => n.startsWith('chair.') && n !== 'chair.deskPlate' && n !== 'chair.deskMagnet' && n !== 'chair.remote' && n !== 'chair.basePlate' && n !== 'chair.trim');
-ok('chair overall width (with wings)', '46', `${len(wholeChair.x)}`, len(wholeChair.x) === 46);
+// ---- chair (design sheet: 32 W x 48 H x 73 L, 83 with the extension; 110 deg back, 135 deg leg)
+const gC = pod.parts.chair, byName = (n) => gC.getObjectByName(n);
+const chairMeshes = []; gC.traverse((o) => { if (o.isMesh) chairMeshes.push(o); });
+const envelope = () => { pod.root.updateMatrixWorld(true); const b = new THREE.Box3(), t = new THREE.Box3(); for (const m of chairMeshes) { if (m.name === 'chair.remote' || m.name.startsWith('chair.deskM')) continue; t.setFromObject(m, true); b.union(t); } return planBox(b); };
+const goPose = (t, x = 0) => { pod.api.rigs.chair.t = pod.api.rigs.chair.target = t; pod.api.rigs.legext.t = pod.api.rigs.legext.target = x; pod.api.rigs.chair.apply(); };
+const geoSize = (name) => { const m = chairMeshes.find((o) => o.name === name); m.geometry.computeBoundingBox(); return m.geometry.boundingBox.getSize(new THREE.Vector3()); };
+const sz3 = (v) => `${f(v.x)} x ${f(v.y)} x ${f(v.z)}`;
+goPose(0.45);
+let env = envelope(); const W = len(env.x), Hh = env.z[1], L = len(env.y);
+ok('chair width (sheet 32 in)', '32', `${W}`, near(W, 32, 0.15));
+ok(`chair height at 110 deg (sheet 48 in + ${RISE} in raised pedestal)`, `${48 + RISE}`, `${Hh}`, near(Hh, 48 + RISE, 0.4));
+ok('chair length, extension retracted (sheet 73 in)', '73', `${L}`, near(L, 73, 0.4));
+goPose(0.45, 1); env = envelope(); ok('chair length, extension out (sheet 83 in)', '83', `${len(env.y)}`, near(len(env.y), 83, 0.5));
+goPose(0.45);
+let v = geoSize('chair.headrest'); ok('headrest depth x width x height (sheet 6 x 20 x 9)', '6 x 20 x 9', sz3(v), near(v.x, 6, 0.05) && near(v.y, 20, 0.05) && near(v.z, 9, 0.05));
+v = geoSize('chair.backPad'); ok('backrest depth x width x length (sheet 6 x 20 x 30)', '6 x 20 x 30', sz3(v), near(v.x, 6, 0.05) && near(v.y, 20, 0.05) && near(v.z, 30, 0.05));
+v = geoSize('chair.seatCushion'); ok('seat length x width x thick (sheet 25 x 20 x 6)', '25 x 20 x 6', sz3(v), near(v.x, 25, 0.05) && near(v.y, 20, 0.05) && near(v.z, 6, 0.1));
+v = geoSize('chair.ArmL'); ok('armrest long (sheet 15)', '15', `${f(v.x)}`, near(v.x, 15, 0.05));
+v = geoSize('chair.calfPod'); ok('leg rest long (sheet 18)', '18', `${f(v.x)}`, near(v.x, 18, 0.1));
+v = geoSize('chair.ext'); ok('leg extension long (sheet 12)', '12', `${f(v.x)}`, near(v.x, 12, 0.05));
+const ang = () => ({ back: 90 - THREE.MathUtils.radToDeg(byName('chair.back').rotation.y), leg: 180 - THREE.MathUtils.radToDeg(byName('chair.foot').rotation.y) });
+let an = ang(); ok('normal pose: back-to-seat 110 deg, leg-to-foot 135 deg', '110 / 135', `${f(an.back)} / ${f(an.leg)}`, near(an.back, 110, 0.1) && near(an.leg, 135, 0.1));
+goPose(0); an = ang(); env = envelope(); ok('upright: back-to-seat angle', '100', `${f(an.back)}`, near(an.back, 100, 0.1));
+ok('upright: head end inside the cabin, feet clear of the door', 'y >= 49.6, <= 141', `${env.y[0]} .. ${env.y[1]}`, env.y[0] >= 49.6 && env.y[1] <= 141);
+goPose(1); an = ang(); env = envelope(); ok('zero gravity: back-to-seat angle', '126', `${f(an.back)}`, near(an.back, 126, 0.1));
+ok('zero gravity: head end inside the cabin, feet clear of the door', 'y >= 49.6, <= 141', `${env.y[0]} .. ${env.y[1]}`, env.y[0] >= 49.6 && env.y[1] <= 141);
+console.log('   zero gravity  length', len(env.y), ' height', env.z[1], ' y', env.y);
+goPose(0.45, 1); pod.api.rigs.chair.t = pod.api.rigs.chair.target = 1; pod.api.rigs.chair.apply();
+ok('leg extension is locked out beyond the normal pose', 'same length as without it', `${len(envelope().y)}`, near(len(envelope().y), len(env.y), 0.01));
+goPose(0);
 
-// ---- flat bed
-pod.api.rigs.chair.target = 1; for (let i = 0; i < 400; i++) pod.api.update(0.05);
-const bed = chairBox((n) => ['chair.headrest', 'chair.backPad', 'chair.seatCushion', 'chair.calfPod', 'chair.footCradle', 'chair.toeLip'].includes(n));
-const bedExt = chairBox((n) => ['chair.headrest', 'chair.backPad', 'chair.seatCushion', 'chair.calfPod', 'chair.footCradle', 'chair.toeLip', 'chair.ext'].includes(n));
-ok('flat bed length (head -> leg rest end)', '75', `${len(bed.y)}`, Math.abs(len(bed.y) - 75) < 1.0);
-ok('flat bed with leg extension', '85', `${len(bedExt.y)}`, Math.abs(len(bedExt.y) - 85) < 1.0);
-console.log('   bed y range', bedExt.y, ' head end must stay inside the cabin (y >= 48.8):', bedExt.y[0] >= 48.8, ' feet end < 144:', bedExt.y[1] < 144);
-const topZ = bed.z[1]; ok('bed top height = seat top', '23', `${topZ}`, Math.abs(topZ - 23) < 1.2);
-pod.api.rigs.chair.target = 0; for (let i = 0; i < 400; i++) pod.api.update(0.05);
-
-// ---- desks
+// ---- desks (stored upright in the armrests; plates swing flat over the lap, 12.5 each)
 const dp = find('chair.deskPlate');
 const upd = () => pod.root.updateMatrixWorld(true);
 pod.api.rigs.desk.target = 1; for (let i = 0; i < 400; i++) pod.api.update(0.05);
 upd(); const db = new THREE.Box3(); dp.forEach((o) => db.union(new THREE.Box3().setFromObject(o))); const dpb = planBox(db);
-ok('joined desk span (across) x (along)', '43 x 10.75', `${len(dpb.x)} x ${len(dpb.y)}`, Math.abs(len(dpb.x) - 43.5) < 0.6 && Math.abs(len(dpb.y) - 10.75) < 0.1);
+ok('joined desk span (across) x (along)', `25 x 10.75`, `${len(dpb.x)} x ${len(dpb.y)}`, near(len(dpb.x), 25, 0.6) && near(len(dpb.y), 10.75, 0.1));
 console.log('   desk height z', dpb.z);
 pod.api.rigs.desk.target = 0; for (let i = 0; i < 400; i++) pod.api.update(0.05);
 
 // ---- other units (static boxes are merged; check overall extents of known groups through raycast-free bounding of the whole pod)
 const whole = planBox(bbox(pod.pod)); ok('pod footprint (incl. ramp/plants)', 'x 0..90', `${whole.x}`, whole.x[0] <= 0 && whole.x[1] >= 90);
-const roof = planBox(bbox(find('roof.slab')[0])); ok('roof top height', '94', `${roof.z[1]}`, roof.z[1] === 94);
+const apexZ = Math.max(...find('roof.slab').map((o) => planBox(new THREE.Box3().setFromObject(o, true)).z[1])); ok('pyramid roof apex height (closed)', '126', `${f(apexZ)}`, Math.abs(apexZ - 126.7) < 0.8);
+pod.api.rigs.roof.target = 1; for (let i = 0; i < 100; i++) pod.api.update(0.05);
+upd(); const openTop = Math.max(...find('roof.slab').map((o) => planBox(new THREE.Box3().setFromObject(o, true)).z[1])); ok('fire vent: panels fold outward, clear of the opening', 'apex lower than closed', `${f(openTop)}`, openTop < apexZ);
+pod.api.rigs.roof.target = 0; for (let i = 0; i < 100; i++) pod.api.update(0.05);
 
 // ---- doors
-for (const n of ['free', 'premium']) { pod.api.rigs[n].target = 1; for (let i = 0; i < 100; i++) pod.api.update(0.05); const g = n === 'free' ? pod.parts.doorFree : pod.parts.doorPremium; console.log('   door', n, 'rotation z deg', f(THREE.MathUtils.radToDeg(g.rotation.z))); pod.api.rigs[n].target = 0; for (let i = 0; i < 100; i++) pod.api.update(0.05); }
+for (const n of ['premium']) { pod.api.rigs[n].target = 1; for (let i = 0; i < 100; i++) pod.api.update(0.05); const g = pod.parts.doorPremium; console.log('   door', n, 'rotation z deg', f(THREE.MathUtils.radToDeg(g.rotation.z))); pod.api.rigs[n].target = 0; for (let i = 0; i < 100; i++) pod.api.update(0.05); }
 // ---- tv
 pod.api.rigs.tv.target = 1; for (let i = 0; i < 100; i++) pod.api.update(0.05);
 upd(); const tvb = new THREE.Box3(); pod.parts.tv.traverse((o) => { if (o.name === 'tv.bezel') tvb.union(new THREE.Box3().setFromObject(o)); });
@@ -89,12 +105,13 @@ ok('brand bar (24 x 6 = 4:1)', '1024 x 256', has(1024, 256) ? '1024 x 256' : 'mi
 const { step: wstep } = await import(pathToFileURL(path.join(here, '../js/walk.js')).href);
 const walk = (start, dir, n, speed = 1) => { const p = { x: start[0], y: start[1] }; for (let i = 0; i < n; i++) wstep(p, dir[0] * speed, dir[1] * speed, 8, pod.api.set('tv', 0) || pod.obstacles()); return p; };
 let p = walk([38.5, 215], [0, -1], 500);
-ok('walk in through the entrance (stops at the chair)', 'reaches y ~112', `y=${f(p.y)}`, p.y > 108 && p.y < 116);
-p = walk([10, 215], [0, -1], 500); ok('cannot walk through the wall beside the entrance', 'stays y >= 152', `y=${f(p.y)}`, p.y >= 152 - 0.01);
-p = walk([38.5, 125], [-1, 0], 300); ok('left wall beside the pathway (coat station)', 'stops x >= 31.5', `x=${f(p.x)}`, p.x >= 31.5 - 0.01);
+const cOb = () => pod.obstacles().find((o) => o.tag === 'chair'); let cy1 = cOb().y1;
+ok('walk in through the entrance (stops at the chair, upright)', `y ~ ${f(cy1 + 8)}`, `y=${f(p.y)}`, Math.abs(p.y - (cy1 + 8)) < 2);
+p = walk([10, 215], [0, -1], 500); ok('open entrance end: walks down the left side until the pillows', 'stops y ~124', `y=${f(p.y)}`, Math.abs(p.y - 124) < 1);
+p = walk([38.5, 125], [-1, 0], 300); ok('left wall (open entrance end)', 'stops x >= 11.5', `x=${f(p.x)}`, p.x >= 11.5 - 0.01);
 p = walk([45, -120], [0, 1], 500); ok('back machines block walking in from behind', 'stops y <= -8', `y=${f(p.y)}`, p.y <= -8 + 0.01);
-pod.api.rigs.chair.target = 1; for (let i = 0; i < 400; i++) pod.api.update(0.05);
-p = walk([38.5, 138], [0, -1], 400); ok('flat bed blocks the pathway', 'stays y >= 143', `y=${f(p.y)}`, p.y >= 135.5 + 8 - 0.5);
+pod.api.rigs.chair.target = 1; for (let i = 0; i < 400; i++) pod.api.update(0.05); cy1 = cOb().y1;
+p = walk([38.5, 138], [0, -1], 400); ok('full recline blocks the pathway', `stays y >= ${f(cy1 + 7.5)}`, `y=${f(p.y)}`, p.y >= cy1 + 7.5);
 pod.api.rigs.chair.target = 0; for (let i = 0; i < 400; i++) pod.api.update(0.05);
 pod.api.rigs.glass1.target = 1; for (let i = 0; i < 100; i++) pod.api.update(0.05);
 p = walk([38.5, 215], [0, -1], 500); ok('closed glass blocks the entrance', 'stays y >= 150', `y=${f(p.y)}`, p.y >= 150);

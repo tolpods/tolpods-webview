@@ -253,7 +253,7 @@ export function buildAirport() {
   for (const [x, y, yaw, h, top, o] of [
     [-72, 40, 0, 70, 0], [-66, 64, 0.15, 65, 3, { bag: true }],            // two people reading the ad screen on the pod's left wall
     [300, 262, -PI / 2, 71, 4, { walk: true, bag: true }], [300, 306, -PI / 2, 66, 2, { walk: true }],
-    [28, 452, PI / 2, 69, 5], [66, 448, PI / 2, 63, 6],                      // under the TOLPOD sign
+    [28, 452, PI / 2, 69, 5], [66, 448, PI / 2, 63, 6],                      // under the TOLPODS sign
     [520, -210, PI, 69, 5, { bag: true }], [-190, 640, PI / 2, 70, 0, { walk: true }], [-200, 700, PI / 2, 64, 3, { walk: true, bag: true }],
     [820, 180, PI, 68, 6, { walk: true }], [840, 215, PI, 72, 1, { walk: true, bag: true }],
   ]) figure(x, y, yaw, h, top, o || {});
@@ -267,7 +267,7 @@ export function buildAirport() {
     box(x - fw / 2, y - fd / 2, z - h / 2, fw, fd, h, M.frame, ceilBatch);
     for (const k of [-0.36, 0.36]) box(x + (axis === 'x' ? 0 : k * w) - 0.5, y + (axis === 'x' ? k * w : 0) - 0.5, z + h / 2, 1, 1, CEIL - (z + h / 2), M.steel, ceilBatch);
   };
-  hang(signCanvas(['TOLPOD', 'Private rest pods'], { arrowDir: 'd', accent: '#d9a95a' }), 150, 38, 45, 520, 330, 'y');
+  hang(signCanvas(['TOLPODS', 'Private rest pods'], { arrowDir: 'd', accent: '#d9a95a' }), 150, 38, 45, 520, 330, 'y');
   hang(signCanvas(['DEPARTURES', 'Gates 1-24'], { arrowDir: 'r' }), 190, 48, 450, -250, 350, 'y');
   hang(signCanvas(['ARRIVALS', 'Baggage claim'], { arrowDir: 'l' }), 190, 48, -450, 900, 350, 'y');
   hang(signCanvas(['GATES 12-24'], { arrowDir: 'u' }), 150, 38, 800, 920, 340, 'x');

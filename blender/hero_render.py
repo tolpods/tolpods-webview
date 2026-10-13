@@ -1,5 +1,5 @@
 """
-TOLPOD hero render  (Blender 5.x)
+TOLPODS hero render  (Blender 5.x)
 =================================
 Renders a 4K still of the pod for the website's landing page (assets/hero.jpg).
 

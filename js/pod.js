@@ -1,10 +1,11 @@
-// TOLPOD - the full pod, built in code from the sheet's dimensions (inches).
+// TOLPODS - the full pod, built in code from the sheet's dimensions (inches).
 // Plan frame: x right (0..90), y toward the ENTRANCE (0..144), z up. The group is rotated so the scene is Y-up.
 import * as THREE from 'three';
 import { SPEC as S } from './spec.js';
 import { makeMaterials, tex } from './mats.js';
-import { Batch, boxGeo, rboxGeo, cylGeo, cylXGeo, cylYGeo, extrudeXZ, extrudeYZ, planeGeo } from './geo.js';
+import { Batch, boxGeo, rboxGeo, cylGeo, cylXGeo, cylYGeo, extrudeXZ, extrudeYZ, planeGeo, triPanel } from './geo.js';
 import { Products } from './products.js';
+import { buildChair, POSES } from './chair.js';
 
 const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
 const ease = (t) => t * t * (3 - 2 * t);
@@ -84,19 +85,22 @@ export function buildPod(opts = {}) {
     m.renderOrder = 1; pod.add(m);
   })();
   B(3.5, 48, 0, 80, 96, 0.4, M.floor);
-  parts.roof = group('roof');                                                                  // the slab and the rooftop equipment hide together
-  mesh(boxGeo(0, 0, 92, 90, 144, 2, M.ceil), [M.ceil, M.ceil, M.ceil, M.ceil, M.roofTop, M.ceil], parts.roof, 'roof.slab');   // plaster underside, membrane on top
-  {
-    const rf = parts.roof, rbx = (x, y, z, sx, sy, sz, m) => mesh(boxGeo(x, y, z, sx, sy, sz, m), m, rf, 'roof.item');
-    rbx(0, 0, 94, 90, 1.6, 1.4, M.ext); rbx(0, 142.4, 94, 90, 1.6, 1.4, M.ext); rbx(0, 1.6, 94, 1.6, 140.8, 1.4, M.ext); rbx(88.4, 1.6, 94, 1.6, 140.8, 1.4, M.ext);   // coping
-    rbx(46, 66, 94, 34, 26, 9, M.hvac);                                                       // roof-top air handler
-    for (let i = 0; i < 6; i++) { rbx(45.8, 68 + i * 3.6, 95.6, 0.3, 2, 5.4, M.graphite); rbx(79.9, 68 + i * 3.6, 95.6, 0.3, 2, 5.4, M.graphite); }   // louvres
-    mesh(cylGeo(63, 79, 103, 10.2, 0.6, 28), M.steel, rf, 'roof.item'); mesh(cylGeo(63, 79, 103.4, 8.8, 0.2, 28), M.black, rf, 'roof.item');         // fan grille
-    for (const x of [20, 25]) { mesh(cylGeo(x, 102, 94, 1.6, 7, 14), M.steel, rf, 'roof.item'); mesh(cylGeo(x, 102, 101, 2.6, 0.8, 14), M.steel, rf, 'roof.item'); }   // vent stacks
-    mesh(cylGeo(70, 124, 94, 0.5, 14, 8), M.steel, rf, 'roof.item'); mesh(new THREE.SphereGeometry(2, 14, 8).translate(70, 124, 108.4), M.white, rf, 'roof.item');   // antenna
-  }
+  // ---- pyramid roof: four triangular panels, each hinged along its eave. In a fire they swing outward like petals to vent the smoke.
+  parts.roof = group('roof');
+  const RISE = 34, APEX = [45, 72, 92 + RISE], panels = [];
+  [[0, 0, 0, 144, -Math.PI / 2, 45], [90, 144, 0, 144, Math.PI / 2, 45], [0, 0, 90, 0, 0, 72], [90, 144, 90, 144, Math.PI, 72]].forEach(([hx, hy, , , rz, run], i) => {
+    const len = i < 2 ? 144 : 90;
+    const outer = group('roof.hinge', i < 2 ? (i === 0 ? 0 : 90) : 45, i < 2 ? 72 : (i === 2 ? 0 : 144), 92, parts.roof); outer.rotation.z = rz;
+    const inner = group('roof.panel', 0, 0, 0, outer);
+    const geo = triPanel([-len / 2, 0, 0], [len / 2, 0, 0], [0, run, RISE], 1.4);
+    mesh(geo, [M.hvac, M.ceil, M.graphite], inner, 'roof.slab');
+    const hinge = mesh(boxGeo(-len / 2, -1.2, -1, len, 1.2, 2, M.steel), M.steel, outer, 'roof.item', false);   // eave beam stays put
+    panels.push({ inner, open: Math.PI - Math.atan2(RISE, run) - 0.35 });
+  });
+  rigs.roof = { t: 0, target: 0, dur: 2.6, apply: (e) => { for (const p of panels) p.inner.rotation.x = p.open * e; } };
+  parts.roofApex = APEX;
   for (const x of [20, 39.5, 59]) B(x - 1.5, 52, 91.6, 3, 88, 0.4, M.led);
-  for (const y of [58, 76, 94, 112, 130]) B(16, y - 2, 90.4, 48, 4, 1.6, M.oak);          // oak ceiling beams
+  for (const y of [58, 76, 94, 112, 130]) B(3.5, y - 2, 90.4, y > 98 ? 68 : 80, 4, 1.6, M.oak);          // oak ceiling beams, wall to wall now that the flat slab is gone
   B(3.5, 48.2, 88.2, 80, 1.2, 0.5, M.cove); B(3.5, 48, 88.8, 80, 3, 0.8, M.oak);          // warm cove light + ledge
 
   // ---- left wall strip (x 0..3.5): plain, with the ad screen
@@ -104,7 +108,6 @@ export function buildPod(opts = {}) {
   for (const y of [0, 71.4, 142.8]) B(0, y, 0, 3.5, 1.2, 92, M.ext);
   B(0, 1.2, 8, 3.5, 70.2, 78, M.ext); B(0, 72.6, 8, 3.5, 70.2, 78, M.ext);
   B(2.9, 0, 0, 0.6, 144, 92, M.plaster);                                    // inner skin goes on last, so the cream plaster (not the sage shell) faces the cabin
-  B(-0.15, 12, 38, 2.75, 48, 27, M.black); PL(46.4, 25.4, '-x', -0.2, 36, 51.5, M.screenAd);
   // ---- right wall strip (x 83.5..90): plain
   B(83.5, 0, 86, 6.5, 144, 6, M.ext); B(83.5, 0, 0, 6.5, 144, 8, M.graphite);
   B(83.5, 0, 8, 6.5, 144, 78, M.ext);
@@ -116,11 +119,16 @@ export function buildPod(opts = {}) {
   B(22.7, 142.2, 0, 0.8, 2.6, 82, M.steel); B(53.5, 142.2, 0, 0.8, 2.6, 82, M.steel);
   for (const yy of [144.0, 144.6]) { B(23.5, yy, 0.5, 60, 0.4, 0.3, M.steel); B(23.5, yy, 79.4, 60, 0.4, 0.6, M.steel); }
   B(54.5, 144.0, 73.6, 16, 0.35, 12.4, M.graphite);                                          // dark plaque, so the sign reads against the wood
-  sign('TOLPOD', 15, 4.4, '+y', 62.5, 144.4, 83.4, '#e0b55a');
+  sign('TOLPODS', 15, 4.4, '+y', 62.5, 144.4, 83.4, '#e0b55a');
   sign('rest \u00b7 recharge', 15, 2.6, '+y', 62.5, 144.4, 76.3, '#e0b55a', null, 'serif');
   // privacy cameras (7)
   B(36.5, 144.5, 84, 3, 3, 3, M.graphite); B(36.2, 148.2, 84.1, 3.6, 0.3, 1.6, M.steel); CY(38, 147, 85.5, 1, 1.2, M.black);
   B(40.5, 139.5, 84, 3, 3, 3, M.graphite); CY(42, 138.2, 85.5, 1, 1.2, M.black); B(43, 142.6, 84.3, 0.5, 0.3, 0.5, M.red);
+
+  // fixed glass, 2nd layer, left of the door (cannot open): fills the gap the sliding glass leaves beside the entrance
+  B(3.5, 144.6, 0.8, 20, 0.4, 34.2, M.glass); B(15.5, 144.6, 35, 8, 0.4, 45, M.glass);
+  B(3.5, 144.5, 0.5, 20, 0.6, 0.4, M.steel); B(15.5, 144.5, 79.4, 8, 0.6, 0.6, M.steel); B(3.5, 144.5, 35, 12, 0.6, 0.5, M.steel);
+  B(15.2, 144.5, 35, 0.6, 0.6, 45, M.steel); B(23.1, 144.5, 0.5, 0.6, 0.6, 80, M.steel); B(3.5, 144.5, 0.5, 0.6, 0.6, 35, M.steel);
 
   // smart glass layers (outside the front wall, sliding sideways over the front of Block 5)
   const glassG1 = group('glass1', 0, 0, 0); mesh(boxGeo(23.5, 144.0, 0.8, 30, 0.4, 36, M.pdlc), M.pdlc, glassG1, 'glass.layer1', false);
@@ -129,139 +137,8 @@ export function buildPod(opts = {}) {
   rigs.glass2 = { t: 0, target: 0, dur: 1.2, apply: (e) => { glassG2.position.x = 30 * (1 - e); } };
 
   // =========================================================== 1  massage chair (rigged)
-  const chair = (() => {
-    const C0 = S.chair, side = C0.side, st = C0.seatTop, yw = C0.width - 2 * side, o = yw / 2 + side;
-    const g = group('chair', C0.centreX, C0.headY, 0); g.rotation.z = Math.PI / 2;          // local x = along the chair, local y = across
-    const slide = group('chair.slide', 0, 0, 0, g);
-    const Z = [0, 0, 0];
-    const bx = (p, pv, x0, y0, z0, sx, sy, sz, mat, name) => mesh(boxGeo(x0 - pv[0], y0 - pv[1], z0 - pv[2], sx, sy, sz, mat), mat, p, name);
-    const rb = (p, pv, x0, y0, z0, sx, sy, sz, r, mat, name) => mesh(rboxGeo(x0 - pv[0], y0 - pv[1], z0 - pv[2], sx, sy, sz, r), mat, p, name);
-    const ex = (p, pv, pts, y0, y1, mat, bevel, name) => mesh(extrudeXZ(pts, y0, y1, bevel, pv), mat, p, name);
-    const wt = st + 7 - 3.5;
-    const quiltFor = (zlen, ylen) => {                       // diamond size stays ~4" whatever the part's proportions
-      const m = M.quilt.clone(); m.map = M.quilt.map.clone(); m.bumpMap = M.quilt.bumpMap.clone();
-      m.map.repeat.set(zlen / 16, ylen / 16); m.bumpMap.repeat.copy(m.map.repeat); m.map.needsUpdate = true; m.bumpMap.needsUpdate = true;
-      return m;
-    };
-    const quiltHead = quiltFor(9, yw - 3), quiltBack = quiltFor(30, 14);
+  const chair = buildChair({ M, S, group, mesh, rigs, parts, pod, clamp });          // see js/chair.js
 
-    // ---- base: rail plate, back base, seat body, quilted seat cushion
-    bx(slide, Z, -9, -yw / 2, 0.4, 45, yw, 1.2, M.bronze, 'chair.basePlate');                  // ends before the pathway zone when flat
-    rb(slide, Z, -10, -yw / 2, 1.6, 18, yw, st - 1.6, 0.8, M.shell, 'chair.backBase');
-    rb(slide, Z, 5, -yw / 2, 1.6, 27, yw, st - 7.6, 0.8, M.shell, 'chair.seatBody');
-    bx(slide, Z, 6, -yw / 2 + 1, 1.3, 25, yw - 2, 0.3, M.accent, 'chair.underglow');
-    const sw = (yw - 1) / 3;
-    for (let i = 0; i < 3; i++) rb(slide, Z, 6, -yw / 2 + i * (sw + 0.5), st - 6, 25, sw, 6, 1.3, M.leather, 'chair.seatCushion');
-    bx(slide, Z, 30.4, -yw / 2, st - 5.4, 0.9, yw, 0.9, M.leather2, 'chair.piping');
-    bx(slide, Z, 29, -3, 1, 3, 6, st - 7, M.bronze, 'chair.actuator');
-
-    // ---- back: pivots at the seat's rear edge (x = 8, z = seat top)
-    const BP = [8, 0, st];
-    const back = group('chair.back', BP[0], BP[1], BP[2], slide);
-    ex(back, BP, [[-10, st], [5.5, st], [5.5, st + 28.5], [-6, st + 28.5], [-8, st + 24], [-9.4, st + 16], [-10, st + 6]], -yw / 2, yw / 2, M.shell, 1.2, 'chair.backShell');
-    rb(back, BP, 5.5, -7, st - 2, 2.5, 14, 30, 0.9, quiltBack, 'chair.backPad');
-    rb(back, BP, 4, -yw / 2 + 0.5, st, 4, 10.5, 27, 1.5, M.leather2, 'chair.bolster');
-    rb(back, BP, 4, 7.5, st, 4, 10.5, 27, 1.5, M.leather2, 'chair.bolster');
-    const wingRear = [[-10, st], [9, st], [9, wt], [6, wt + 1.5], [2, st + 13], [-2, st + 22], [-6, st + 27.5], [-9, st + 28.5], [-10, st + 25]];
-    ex(back, BP, wingRear, yw / 2, o, M.shell, 0.7, 'chair.wingRear');
-    ex(back, BP, wingRear, -o, -yw / 2, M.shell, 0.7, 'chair.wingRear');
-    const head = group('chair.head', 0, 0, 0, back);
-    rb(head, BP, -10, -(yw - 3) / 2, st + 28.5, 18, yw - 3, 9, 3, quiltHead, 'chair.headrest');
-
-    // ---- leg rest: pivots at the seat's front edge; hangs 49 deg, lifts to flat
-    const LP = [31, 0, st - 3];
-    const leg = group('chair.leg', LP[0], LP[1], LP[2], slide);
-    // The cabin narrows to a 30" pathway between the coat station and block 5 from y = 116, which is where the legs of the flat bed end up.
-    // So the leg rest tapers from the full 37" at the knee to FW over its first 8", then stays that width through the foot and extension,
-    // and sits SH further toward the pathway centre line (x = 38.5; the chair centre is 39.5).
-    const gap = 1, hw = (yw - gap) / 4, FW = 28.6, SH = 1, TL = 8, f = FW / yw;
-    const narrow = (pts) => pts.map(([y, z]) => [y * f + SH, z]);
-    const taper = (g) => {                                         // lateral width eases from 100% to f over the length TL (planar, so lighting stays clean)
-      const p = g.attributes.position;
-      for (let i = 0; i < p.count; i++) { const u = Math.min(1, Math.max(0, p.getX(i) / TL)); p.setY(i, p.getY(i) * (1 - (1 - f) * u) + SH * u); }
-      p.needsUpdate = true; g.computeVertexNormals(); return g;
-    };
-    for (const sg of [-1, 1]) {
-      const y0 = sg * (hw + gap / 2);
-      const calf = [[y0 - hw, st], [y0 - hw, st - 9], [y0 - hw + 2.5, st - 12], [y0 + hw - 2.5, st - 12], [y0 + hw, st - 9], [y0 + hw, st], [y0 + hw - 1.4, st], [y0 + hw - 2.8, st - 2.5], [y0 + hw - 5, st - 4.5], [y0, st - 5.5], [y0 - hw + 5, st - 4.5], [y0 - hw + 2.8, st - 2.5], [y0 - hw + 1.4, st]];
-      const foot = [[y0 - hw, st], [y0 - hw, st - 9], [y0 - hw + 2.5, st - 12], [y0 + hw - 2.5, st - 12], [y0 + hw, st - 9], [y0 + hw, st], [y0 + hw - 1.8, st], [y0 + hw - 3, st - 3], [y0 + hw - 5, st - 6], [y0, st - 7], [y0 - hw + 5, st - 6], [y0 - hw + 3, st - 3], [y0 - hw + 1.8, st]];
-      mesh(taper(extrudeYZ(calf, 31, 31 + TL, 0.5, LP)), M.leather, leg, 'chair.calfPod');             // knee: tapers from 37" to FW
-      mesh(extrudeYZ(narrow(calf), 31 + TL, 43, 0.5, LP), M.leather, leg, 'chair.calfPod');             // calf: FW
-      mesh(extrudeYZ(narrow(foot), 43, 49, 0.5, LP), M.shell, leg, 'chair.footCradle');
-      rb(leg, LP, 47.6, (y0 - hw + 1.2) * f + SH, st - 6, 1.4, (2 * hw - 2.4) * f, 6.8, 0.5, M.leather2, 'chair.toeLip');
-    }
-    const ext = group('chair.ext', 0, 0, 0, leg);
-    bx(ext, LP, 37, -(FW - 0.4) / 2 + SH, st - 11, 12, FW - 0.4, 6, M.leather2, 'chair.ext');
-
-    // ---- armrests, wing fronts, cupholders, tablet remote (lower flush with the bed)
-    const arms = group('chair.arms', 0, 0, 0, slide);
-    const wingFront = [[9, 1.6], [30, 1.6], [33, 5], [33.5, 12], [31, wt - 6], [27, wt - 3], [24, wt], [9, wt]];
-    const wings = [ex(arms, Z, wingFront, yw / 2, o, M.shell, 0.7, 'chair.wingFront'), ex(arms, Z, wingFront, -o, -yw / 2, M.shell, 0.7, 'chair.wingFront')];
-    bx(arms, Z, 4, o, 9, 1.2, 0.25, 16, M.steel, 'chair.trim'); bx(arms, Z, 4, -o - 0.25, 9, 1.2, 0.25, 16, M.steel, 'chair.trim');
-    const top = st + 7, cups = [];
-    const armDefs = [['ArmL', -o, 9, 15, 5], ['ArmR', yw / 2, 9, 15, 5], ['ArmMid', -yw / 2 + C0.midArm.fromLeft, 13.5, 12, 4]];
-    for (const [nm, yy, xa, AL, cs] of armDefs) {
-      rb(arms, Z, xa, yy, top - 3.5, AL, side, 3.0, 0.9, M.leather2, 'chair.' + nm);
-      bx(arms, Z, xa + 0.2, yy + 0.2, top - 0.5, AL - 0.4, side - 0.4, 0.5, M.shell, 'chair.' + nm + 'Cap');
-      bx(arms, Z, xa + (AL - 7) / 2, yy + 0.5, st - 6, 7, side - 1, top - 3.5 - (st - 6), M.bronze, 'chair.armSupport');
-      bx(arms, Z, xa - 0.1, yy + 1, top - 2.5, 0.2, side - 2, 1, M.accent, 'chair.armPanel');
-      for (let k = 0; k < 3; k++) {
-        const cx = xa + (AL - 2 * cs) / 2 + cs * k, cy = yy + side / 2;
-        const ring = mesh(cylGeo(cx, cy, top + 0.0, 1.85, 0.3, 20), M.steel, arms, 'chair.cup');
-        const well = mesh(cylGeo(cx, cy, top + 0.1, 1.5, 0.3, 20), M.black, arms, 'chair.cup');
-        cups.push(ring, well);
-      }
-    }
-    const ry = yw / 2 + side / 2;                                  // tablet remote on a stalk
-    mesh(cylGeo(26, ry, 22, 0.5, 10, 10), M.bronze, arms, 'chair.remote');
-    const tab = group('chair.tablet', 26, ry, 33, arms); tab.rotation.x = 0.61;
-    mesh(boxGeo(-2.8, -1.8, -0.25, 5.6, 3.6, 0.5, M.black), M.black, tab, 'chair.remote');
-    mesh(new THREE.PlaneGeometry(4.6, 2.8).translate(0, 0, 0.3), M.screenKey, tab, 'chair.remote', false);
-
-    // ---- pull-out desks: two 21.5 x 10.75 plates that rise out of the 2.5" armrest slots, rotate flat and join (43")
-    const desks = [];
-    for (const sg of [-1, 1]) {
-      const px = 16.5, py = sg * (o - 1.25);
-      const d = group('chair.desk', px, py, 0, slide);
-      mesh(boxGeo(-S.desk.wide / 2, -1, 0, S.desk.wide, 2, S.desk.long, M.oak), M.oak, d, 'chair.deskPlate');
-      mesh(boxGeo(-1.2, -1.1, S.desk.long - 3.5, 2.4, 2.2, 1.5, M.brass), M.brass, d, 'chair.deskMagnet');
-      desks.push({ d, sg });
-    }
-    const deskRise = (st + 10) - (top - S.desk.long);            // plate bottom: armrest top - 21.5  ->  desk height
-    rigs.desk = {
-      t: 0, target: 0, dur: 2.6,
-      apply: (e) => {
-        const up = clamp(e / 0.45), rot = clamp((e - 0.45) / 0.55);
-        for (const { d, sg } of desks) {
-          d.position.z = (top - S.desk.long) + deskRise * ease(up);
-          d.rotation.x = sg * (Math.PI / 2) * ease(rot);
-        }
-      },
-    };
-
-    // ---- recline rig: 0 = sitting, 1 = full flat bed (75", 85" with extension)
-    const SLIDE_END = 0.45, ease3 = (x) => x * x * (3 - 2 * x);
-    rigs.chair = {
-      t: 0, target: 0, dur: 4.5,
-      apply: (e) => {
-        const sl = ease3(clamp(e / SLIDE_END));                             // 1st: the whole seat slides forward on its floor rails, clear of the back wall
-        const r = ease3(clamp((e - SLIDE_END) / (1 - SLIDE_END)));   // 2nd: only then does the back fold down
-        slide.position.x = 15.5 * sl + 3.5 * Math.sin(Math.PI * r);   // glides a touch further forward while the back swings down, then settles
-        back.rotation.y = -Math.PI / 2 * r;                                 // back folds down behind the seat
-        head.position.z = -3.5 * clamp(r / 0.6);                                         // headrest slides onto the back
-        leg.rotation.y = THREE.MathUtils.degToRad(C0.leg.hang) * (1 - e);   // leg rest lifts from hanging to flat
-        const u = clamp((e - 0.55) / 0.45);
-        ext.position.set(10 * u, 0, 5.2 * u);                               // extension slides out 10"
-        const a = clamp((e - 0.5) / 0.5);
-        arms.position.z = -7 * a;                                           // armrests lower flush with the bed
-        const sz = 1 - 7 * a / (wt - 1.6);                                  // ...while the wing panels shorten, so their lower edge stays on the floor
-        for (const w of wings) { w.scale.z = sz; w.position.z = wt * (1 - sz); }
-        for (const c of cups) c.visible = a < 0.6;
-      },
-    };
-    parts.chair = g;
-    return g;
-  })();
 
   // =========================================================== 3  TV on a ceiling rail
   (() => {
@@ -276,45 +153,11 @@ export function buildPod(opts = {}) {
     parts.tv = g;
   })();
 
-  // =========================================================== 4  coat station (8 x 28 x 60)
-  B(15.5, 116, 0, 0.6, 28, 92, M.oak); B(16.1, 143, 0, 7.4, 1, 60, M.oak); B(15.5, 116, 59, 8, 28, 1, M.oak);
-  B(15.5, 116, 60, 8, 28, 32, M.plaster); B(16.1, 117, 0, 7.4, 27, 3, M.graphite);
-  B(16.8, 115.6, 0, 6, 0.4, 60, M.mirror); B(16.4, 115.4, 0, 6.8, 0.2, 1.2, M.steel);
-  CY(21, 118, 56.5, 0.5, 24, M.brass);
-  for (const y of [119, 141]) B(16.1, y, 56, 4.9, 1, 1, M.steel);
-  for (const y of [122, 130, 138]) B(16.1, y, 50, 2, 1, 1, M.brass);
-  [[0, M.coat[0]], [1, M.coat[1]], [3, M.coat[2]]].forEach(([i, m]) => R(17.8, 140 - 4.6 * i - 1.6, 27, 5, 3.4, 27, 1, m));
+  // (coat station, fridge/microwave block and the free-storage locker were removed: the entrance end is now open floor)
 
-  // =========================================================== 5  fridge / microwave block (28 x 18 x 92)
+  // =========================================================== premium storage (rigged door)
   (() => {
-    const x0 = 53.5, y0 = 116, zf = 3, zs = zf + 31.2, zm = zs + 12.8, zc = zm + 10.2;
-    B(x0, y0, 0, 18, 0.8, 92, M.oak); B(x0, 143.2, 0, 18, 0.8, 92, M.oak); B(70.9, y0, 0, 0.6, 28, 92, M.oak); B(x0, y0, 91.2, 18, 28, 0.8, M.oak);
-    B(54.1, 120.45, zf, 16.8, 19.1, 31.2, M.steel);                               // fridge 19.1 x 17.5 x 31.2
-    B(53.5, 120.45, zf + 21.8, 0.6, 19.1, 9.4, M.white); B(53.5, 120.45, zf, 0.6, 19.1, 21.5, M.white);
-    B(52.7, 136.5, zf + 24, 0.8, 0.8, 5, M.steel); B(52.7, 136.5, zf + 12, 0.8, 0.8, 8, M.steel);
-    B(53.9, 116.8, zs, 17, 26.4, 0.5, M.oak);                                       // surprise-box compartment, 12.8" high
-    R(59.5, 126, zs + 0.5, 8, 8, 8, 0.3, M.giftRed); B(59.4, 129.3, zs + 0.5, 8.2, 1.4, 8.2, M.gold); B(62.8, 125.9, zs + 0.5, 1.4, 8.2, 8.2, M.gold);
-    B(53.5, 116.8, zs + 0.5, 0.4, 26.4, 11.8, M.glass); B(54, 116.8, zs + 12.3, 16, 26, 0.4, M.led);
-    B(53.9, 116.8, zm - 0.5, 17, 26.4, 0.5, M.oak);
-    R(53.5, 119.5, zm, 13, 17.3, 10.2, 0.4, M.black);                               // microwave 17.3 x 13 x 10.2
-    B(53.3, 120.3, zm + 1, 0.2, 10.5, 8.2, M.smoke); B(53.3, 132, zm + 0.8, 0.2, 4, 8.6, M.graphite); B(53.2, 133, zm + 6.8, 0.15, 3, 1.2, M.green);
-    for (let i = 0; i < 2; i++) { B(53.4, 116.8 + i * 13.2, zc, 0.5, 13.2, 92 - zc, M.oak); B(52.8, 127 + i * 6.2, zc + 3, 0.7, 0.7, 7, M.brass); }
-  })();
-
-  // =========================================================== free storage + premium storage (rigged doors)
-  (() => {
-    // free storage 12 x 28 x 35, door on the outside (front)
     const w = 0.8;
-    B(3.5, 116, 0, 12, 28, w, M.cabinetInterior); B(3.5, 116, 35 - w, 12, 28, w, M.oak); B(3.5, 116, 0, 12, w, 35, M.oak);
-    B(3.5, 116, 0, w, 28, 35, M.oak); B(15.5 - w, 116, 0, w, 28, 35, M.oak);
-    B(3.5, 143.2, 0, 1, 0.8, 35, M.oak); B(14.5, 143.2, 0, 1, 0.8, 35, M.oak); B(3.5, 143.2, 0, 12, 0.8, 2, M.oak); B(3.5, 143.2, 33, 12, 0.8, 2, M.oak);
-    B(4.3, 118, 17, 10.4, 24, 0.4, M.oak);
-    R(5, 124, 0.8, 9, 14, 22, 1.2, M.suitcase, 3); B(8, 129, 22.8, 3, 4, 1, M.steel);                  // a carry-on inside
-    const dF = group('door.free', 4.5, 144, 2);
-    mesh(boxGeo(0, 0, 0, 10, 0.5, 31, M.walnut), M.walnut, dF, 'door.free');
-    mesh(boxGeo(8, 0.5, 9, 1, 1.2, 12, M.brass), M.brass, dF, 'door.free'); mesh(boxGeo(1.5, 0.5, 27, 1.2, 0.3, 1.2, M.green), M.green, dF, 'door.free', false);
-    rigs.free = { t: 0, target: 0, dur: 1.4, apply: (e) => { dF.rotation.z = (Math.PI / 2) * 0.96 * e; } };
-    parts.doorFree = dF;
     // premium storage 12 x 44 x 92, door on the inside face (x = 71.5)
     B(71.5, 100, 0, 12, 44, w, M.cabinetInterior); B(71.5, 100, 92 - w, 12, 44, w, M.oak); B(83.5 - w, 100, 0, w, 44, 92, M.oak);
     B(71.5, 100, 0, 12, w, 92, M.oak); B(71.5, 143.2, 0, 12, w, 92, M.oak);
@@ -441,8 +284,15 @@ export function buildPod(opts = {}) {
   }
 
   // ---- exterior finishing: wordmark, data plate, service inlet with its cable and floor box, wheel chocks, skirt lights
-  PL(96, 22, '+x', 90.04, 74, 46, M.wordmark);                                                // wordmark on the right wall
-  PL(24, 10, '-x', -0.06, 124, 22, M.plate);                                                  // data plate on the left wall
+  // side walls (both): TOLPODS strip on top, one big TV filling the rest, vending-machine end plain
+  for (const [x0, dir, f] of [[0, -1, '-x'], [90, 1, '+x']]) {
+    const xo = x0 + dir * 0.0;
+    B(dir < 0 ? -0.5 : 90, 1.5, 70.5, 0.5, 141, 16, M.graphite);                              // dark strip
+    PL(140, 14, f, x0 + dir * 0.54, 72, 78.5, M.stripMark);
+    B(dir < 0 ? -0.6 : 90, 47.5, 7.5, 0.6, 95, 63, M.black);                                  // TV bezel
+    PL(92, 60, f, x0 + dir * 0.64, 95, 39, M.screenSide);
+  }
+  PL(24, 10, '-x', -0.06, 24, 40, M.plate);   // data plate on the vending end
   B(90, 36, 3, 1.5, 9, 6, M.steel); B(90.2, 38.2, 4.4, 1.4, 4.6, 3.2, M.black); B(90.3, 42.6, 6.2, 0.3, 1.4, 1.4, M.green);   // service inlet
   batch.add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([[91.5, 40.5, 5.6], [94, 40.5, 2.5], [97.5, 41.5, -4], [101, 43, -9.4], [112, 49, -9.5], [124, 46, -9.5], [133, 41, -9.5]].map((q) => new THREE.Vector3(...q))), 48, 0.55, 8), M.rubber);
   B(133, 35, -10, 11, 11, 1.7, M.steel); B(134.4, 36.4, -8.4, 8.2, 8.2, 0.3, M.brass);       // floor service box the cable runs to
@@ -475,11 +325,12 @@ export function buildPod(opts = {}) {
   // =========================================================== rig driver + API
   for (const r of Object.values(rigs)) r.apply(ease(r.t));
   const names = Object.keys(rigs);
-  let pending = null;
+  let pending = null, pendingDesk = null;
   const api = {
     rigs, parts,
     update(dt) {
       if (pending !== null && rigs.desk.t < 0.02) { rigs.chair.target = pending; pending = null; }
+      if (pendingDesk !== null && rigs.chair.t < 0.02) { rigs.desk.target = pendingDesk; pendingDesk = null; }
       for (const n of names) {
         const r = rigs[n];
         if (r.t === r.target) continue;
@@ -492,21 +343,22 @@ export function buildPod(opts = {}) {
     get(n) { return rigs[n].target; },
     set(n, v) {
       if (n === 'desk') {
-        if (v > 0 && (rigs.chair.t > 0.05 || rigs.chair.target > 0)) return 'Return the chair to normal before opening the desks.';
-        pending = null;
+        if (v > 0 && (rigs.chair.t > 0.02 || rigs.chair.target > 0.02)) { rigs.chair.target = 0; rigs.legext.target = 0; pendingDesk = v; return 'Setting the chair upright first...'; }
+        pending = null; pendingDesk = null;
       }
       if (n === 'chair') {
-        if (v > 0 && (rigs.desk.t > 0.02 || rigs.desk.target > 0)) { rigs.desk.target = 0; pending = v; return 'Closing the desks first...'; }
-        pending = null;
+        if (v > 0.02 && (rigs.desk.t > 0.02 || rigs.desk.target > 0)) { rigs.desk.target = 0; pending = v; return 'Closing the desks first...'; }
+        pending = null; pendingDesk = null;
       }
+      if (n === 'legext' && v > 0 && rigs.chair.t > 0.55) return 'The leg extension works from upright to the normal 110\u00b0 pose. Bring the chair back to normal first.';
       rigs[n].target = v;
       return '';
     },
     toggle(n) { return this.set(n, rigs[n].target > 0.5 ? 0 : 1); },
     // slider: jump straight to a pose (0..1) with the same interlocks
     scrub(n, v) {
-      if (n === 'chair' && v > 0 && (rigs.desk.t > 0.02 || rigs.desk.target > 0)) { rigs.desk.target = 0; return 'Closing the desks first...'; }
-      pending = null;
+      if (n === 'chair' && v > 0.02 && (rigs.desk.t > 0.02 || rigs.desk.target > 0)) { rigs.desk.target = 0; return 'Closing the desks first...'; }
+      pending = null; pendingDesk = null;
       const r = rigs[n]; r.t = r.target = v; r.apply(ease(v));
       return '';
     },
@@ -521,10 +373,9 @@ export function buildPod(opts = {}) {
     const o = [];
     const bx = (x0, x1, y0, y1, tag) => o.push({ x0, x1, y0, y1, tag });
     bx(-3, 3.5, 0, 144, 'leftWall'); bx(83.5, 93, 0, 144, 'rightWall'); bx(3.5, 83.5, 0, 48.8, 'backBlock');
-    bx(3.5, 15.5, 116, 144, 'free'); bx(15.5, 23.5, 116, 144, 'coat'); bx(53.5, 71.5, 116, 144, 'block5'); bx(71.5, 83.5, 100, 144, 'premium');
+    bx(71.5, 83.5, 100, 144, 'premium');
     bx(3.5, 15.5, 74, 116, 'pillows'); bx(3.5, 15.5, 48, 74, 'minibar'); bx(63.5, 83.5, 68, 100, 'trash'); bx(63.5, 83.5, 48, 68, 'bucket');
-    const e = ease(rigs.chair.t);
-    bx(16.5, 62.5, 51 - 0.5 * e, 104 + 31.5 * e, 'chair');
+    const [cy0, cy1] = chair.extent(); bx(S.chair.centreX - S.chair.width / 2 - 0.5, S.chair.centreX + S.chair.width / 2 + 0.5, cy0, cy1, 'chair');
     if (rigs.tv.t > 0.5) bx(17.7, 61.3, 112.4, 115.9, 'tv');
     if (rigs.glass1.t > 0.5 || rigs.glass2.t > 0.5) bx(23.5, 53.5, 142.8, 145, 'glass');
     return o;

@@ -49,7 +49,7 @@ function init() {
   roofBtn.addEventListener('click', () => { roof = !roof; pod.api.setRoof(roof); roofBtn.textContent = roof ? 'Hide roof' : 'Show roof'; });
 
   // a little demo of the moving parts, looping
-  const script = [[2.5, 'desk', 1], [7, 'desk', 0], [9, 'chair', 1], [17, 'chair', 0]], LOOP = 23;
+  const script = [[1.5, 'legext', 1], [5, 'legext', 0], [6.5, 'desk', 1], [11, 'desk', 0], [13, 'chair', 1], [21, 'chair', 0.45]], LOOP = 27;
   let last = -1;
 
   const ro = new ResizeObserver(() => fit(camera));

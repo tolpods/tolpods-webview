@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Tolpod - explore the pod</title>
-  <meta name="description" content="Walk through the Tolpod in 3D: orbit the pod, step inside, open the storage and recline the chair into a bed.">
+  <title>Tolpods - explore the pod</title>
+  <meta name="description" content="Walk through the Tolpods in 3D: orbit the pod, step inside, open the storage and recline the chair into a bed.">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="preload" href="fonts/dm-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="css/style.css">
@@ -17,7 +17,7 @@
 
   <div class="topbar">
     <a class="back" href="index.html">&larr; Overview</a>
-    <span class="title">TOLPOD</span>
+    <span class="title">TOLPODS</span>
     <a class="reserve" href="index.html#waitlist">Reserve a pod</a>
     <button class="dock-toggle" id="dockToggle" type="button" aria-expanded="true" aria-controls="dock"><span class="bars" aria-hidden="true"></span>Controls</button>
   </div>
@@ -50,15 +50,16 @@
     </div>
     <div class="grp list"><span class="lab">Pod</span>
       <button data-rig="premium" data-label="Premium storage">Premium storage</button>
-      <button data-rig="free" data-label="Free storage">Free storage</button>
       <button data-rig="desk" data-label="Pull-out desks">Pull-out desks</button>
       <button data-rig="tv" data-label="TV">TV</button>
+      <button data-rig="roof" data-label="Fire vent (roof)">Fire vent (roof)</button>
       <button id="glassBtn">Glass: open</button>
     </div>
     <div class="grp chair"><span class="lab">Chair</span>
-      <button data-chair="0" class="on">Normal</button>
-      <button data-chair="1">Full recline</button>
-      <input type="range" id="recline" min="0" max="100" value="0" aria-label="Recline">
+      <button data-chair="0">Upright</button>
+      <button data-chair="1">Zero gravity</button>
+      <button data-chair="0.45" data-ext="1">Leg extension</button>
+      <input type="range" id="recline" min="0" max="100" value="45" aria-label="Recline">
     </div>
     <div class="grp"><span class="lab">Show</span>
       <button id="roofBtn" class="on">Roof</button>

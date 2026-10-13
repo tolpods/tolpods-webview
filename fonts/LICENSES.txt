@@ -6,3 +6,6 @@ Fonts bundled with this site (all licensed under the SIL Open Font License 1.1, 
 - IBM Plex Mono (fallback) Copyright 2017 IBM Corp.
 
 Packaged from the @fontsource npm packages. The OFL permits bundling, use and redistribution with this website.
+
+Outfit, Geist, Geist Mono (variable, latin) - SIL Open Font License 1.1, via @fontsource-variable.
+Outfit stands in for the geometric sans of the design reference (Grift, a commercial font). To use Grift, buy a licence and point --display at it in css/style.css.
