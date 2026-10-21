@@ -1,0 +1,20 @@
+<!doctype html><meta charset="utf-8"><title>cabin view (dev tool)</title>
+<script type="importmap">{ "imports": { "three": "../js/vendor/three.module.js", "three/addons/": "../js/vendor/addons/" } }</script>
+<body style="margin:0;background:#d9d6cc"><canvas id="c" width="1000" height="640"></canvas>
+<script type="module">
+// Dev tool: ?pos=x,y,z&look=x,y,z (plan inches: x right, y toward the entrance, z up) &rigs=snack,premium &roof=0
+import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { buildPod } from '../js/pod.js';
+const q = new URLSearchParams(location.search), v = (k, d) => (q.get(k) || d).split(',').map(Number);
+const r = new THREE.WebGLRenderer({ canvas: document.getElementById('c'), antialias: true }); r.toneMapping = THREE.ACESFilmicToneMapping;
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0xd9d6cc);
+const pm = new THREE.PMREMGenerator(r); scene.environment = pm.fromScene(new RoomEnvironment(), 0.04).texture;
+const sun = new THREE.DirectionalLight(0xffffff, 1.2); sun.position.set(200, 300, 150); scene.add(sun);
+const pod = buildPod(); scene.add(pod.root); pod.api.setPerson(false);
+if (q.get('roof') !== '1') pod.api.setRoof(false);
+for (const n of (q.get('rigs') || '').split(',').filter(Boolean)) { pod.api.rigs[n].t = pod.api.rigs[n].target = 1; pod.api.rigs[n].apply(1); }
+const w = (a) => new THREE.Vector3(a[0], a[2], -a[1]);
+const cam = new THREE.PerspectiveCamera(+(q.get('fov') || 45), 1000 / 640, 0.5, 3000); cam.position.copy(w(v('pos', '40,260,110'))); cam.lookAt(w(v('look', '40,120,45')));
+r.render(scene, cam); document.title = 'done';
+</script>

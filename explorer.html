@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Tolpods - explore the pod</title>
+  <meta name="description" content="Walk through the Tolpods in 3D: orbit the pod, step inside, open the storage and recline the chair into a bed.">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="fonts/dm-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="css/style.css">
+  <script type="importmap">
+  { "imports": { "three": "./js/vendor/three.module.js", "three/addons/": "./js/vendor/addons/" } }
+  </script>
+</head>
+<body class="explorer">
+  <div id="stage"><canvas id="c"></canvas></div>
+
+  <div class="topbar">
+    <a class="back" href="index.html">&larr; Overview</a>
+    <span class="title">TOLPODS</span>
+    <a class="reserve" href="index.html#waitlist">Reserve a pod</a>
+    <button class="dock-toggle" id="dockToggle" type="button" aria-expanded="true" aria-controls="dock"><span class="bars" aria-hidden="true"></span>Controls</button>
+  </div>
+  <div class="hint" id="hint">Drag to orbit &middot; scroll or pinch to zoom</div>
+  <div class="toast" id="toast"></div>
+
+  <div class="caption" id="caption" hidden>
+    <h3 id="capTitle"></h3>
+    <p id="capText"></p>
+    <div class="row"><button id="capPause">Pause</button><button id="capNext">Next &rarr;</button><button id="capStop">Stop tour</button></div>
+  </div>
+
+  <div id="stick"><i></i></div>
+
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <g id="i-orbit" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="12" rx="9" ry="4"/><circle cx="12" cy="12" r="2.2"/></g>
+      <g id="i-walkin" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2"/><path d="M12 8v6m0 0-3 6m3-6 3 6M8 10l4-2 4 2"/></g>
+      <g id="i-walkout" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V8l8-4 8 4v12M9 20v-6h6v6"/></g>
+      <g id="i-door" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="3" width="12" height="18" rx="1.5"/><path d="M14 12h.01"/></g>
+      <g id="i-snack" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 8h8M8 12h8M9 17h6"/></g>
+      <g id="i-desk" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10h18M5 10v9M19 10v9M8 6h8"/></g>
+      <g id="i-tv" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M9 21h6"/></g>
+      <g id="i-shade" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="14" rx="1.5"/><path d="M4 10h16M4 14h10"/></g>
+      <g id="i-tilt" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18h16M6 18l12-8"/></g>
+      <g id="i-slide" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="8" height="12" rx="1"/><rect x="13" y="6" width="8" height="12" rx="1"/><path d="M11 12h2"/></g>
+      <g id="i-fire" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c1 4 5 5 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 1-3 0-6 1-9Z"/></g>
+      <g id="i-glass" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="1"/><path d="M9 8l4-3M9 14l8-6"/></g>
+      <g id="i-chair" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h5a2 2 0 0 1 2 2v6h5v4H7zM7 16v4M19 16v4"/></g>
+      <g id="i-zero" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15h13l5-4M7 15v4M17 15v4M5 11a2 2 0 1 0 0 .01"/></g>
+      <g id="i-leg" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h9l5 6h3M13 8v6M6 8v10"/></g>
+      <g id="i-sun" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/></g>
+      <g id="i-bulb" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3 11v2h6v-2a6 6 0 0 0-3-11Z"/></g>
+      <g id="i-person" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7" r="3"/><path d="M5 20c0-4 3-6 7-6s7 2 7 6"/></g>
+      <g id="i-glow" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 2 6 6 2-6 2-2 6-2-6-6-2 6-2Z"/></g>
+      <g id="i-plane" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13l8-2 3-7h2l-1 7 6 2v2l-6-1-1 5 2 1v1l-4-1-4 1v-1l2-1-1-5-6 1Z"/></g>
+      <g id="i-front" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="16" rx="1.5"/><path d="M10 20v-7h4v7"/></g>
+      <g id="i-back" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="1.5"/><path d="M9 8h6M9 12h6M9 16h6"/></g>
+      <g id="i-left" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5v14M8 8h12v8H8z"/></g>
+      <g id="i-right" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 5v14M16 8H4v8h12z"/></g>
+      <g id="i-top" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="6" width="16" height="12" rx="1.5"/><path d="M12 6v12M4 12h16"/></g>
+      <g id="i-cabin" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l9-4 9 4v10l-9 3-9-3Z"/><path d="M12 11v10M3 8l9 3 9-3"/></g>
+      <g id="i-explore" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5Z"/></g>
+      <g id="i-pod" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M9 6v12M14 10v4"/></g>
+      <g id="i-scene" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18h18M5 18V9l7-4 7 4v9"/></g>
+    </defs>
+  </svg>
+  <nav class="dock" id="dock" aria-label="Pod controls">
+    <div class="tabs" role="tablist">
+      <button role="tab" data-tab="explore" class="on"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-explore"/></svg><span>Explore</span></button>
+      <button role="tab" data-tab="pod"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-pod"/></svg><span>Pod</span></button>
+      <button role="tab" data-tab="chair"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-chair"/></svg><span>Chair</span></button>
+      <button role="tab" data-tab="scene"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-scene"/></svg><span>Scene</span></button>
+    </div>
+
+    <section class="dpanel" data-panel="explore">
+      <div class="dcard"><h4>How you look</h4>
+        <div class="seg">
+          <button data-mode="orbit" class="on"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-orbit"/></svg><span>Orbit</span></button>
+          <button data-mode="walk-in"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-walkin"/></svg><span>Walk in</span></button>
+          <button data-mode="walk-out"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-walkout"/></svg><span>Walk out</span></button>
+        </div>
+        <p class="sub">Orbit with the mouse, or walk with W A S D / the on-screen stick.</p>
+      </div>
+      <div class="dcard"><h4>Go to</h4>
+        <div class="tiles">
+          <button data-go="front"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-front"/></svg><span>Entrance</span></button>
+          <button data-go="cabin"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-cabin"/></svg><span>Cabin</span></button>
+          <button data-go="back"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-back"/></svg><span>Back machines</span></button>
+          <button data-go="top"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-top"/></svg><span>Top view</span></button>
+          <button data-go="left"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-left"/></svg><span>Left wall</span></button>
+          <button data-go="right"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-right"/></svg><span>Right wall</span></button>
+        </div>
+      </div>
+      <div class="dcard"><h4>Guided tours</h4>
+        <button class="tour" data-tour="outside"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-plane"/></svg><span class="nm">Outside tour<small>Entrance, sign, machines and side walls</small></span><b>10 stops</b></button>
+        <button class="tour" data-tour="inside"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-cabin"/></svg><span class="nm">Inside tour<small>Chair, pillows, minibars, charging, snack bar</small></span><b>11 stops</b></button>
+      </div>
+    </section>
+
+    <section class="dpanel" data-panel="pod" hidden>
+      <div class="dcard"><h4>Storage &amp; doors</h4>
+      <button class="rowbtn" data-rig="premium" data-label="Premium storage"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-door"/></svg><span class="nm">Premium storage</span><span class="st"></span></button>
+      <button class="rowbtn" data-rig="snack" data-label="Snack bar door"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-snack"/></svg><span class="nm">Snack bar door</span><span class="st"></span></button>
+      <button class="rowbtn" id="glassBtn"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-glass"/></svg><span class="nm">Entrance glass</span><span class="st"></span></button>
+      </div>
+      <div class="dcard"><h4>Moonroof</h4>
+      <button class="rowbtn" data-rig="shade" data-label="Shade"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-shade"/></svg><span class="nm">Shade</span><span class="st"></span></button>
+      <button class="rowbtn" data-rig="tilt" data-label="Tilt"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tilt"/></svg><span class="nm">Tilt</span><span class="st"></span></button>
+      <button class="rowbtn" data-rig="slide" data-label="Slide"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-slide"/></svg><span class="nm">Slide</span><span class="st"></span></button>
+      <button class="rowbtn" id="ventBtn"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-fire"/></svg><span class="nm">Fire vent</span><span class="st"></span></button>
+        <p class="sub">Fire vent opens the shade and tilts the glass together.</p>
+      </div>
+      <div class="dcard"><h4>Comfort</h4>
+      <button class="rowbtn" data-rig="desk" data-label="Pull-out desks"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-desk"/></svg><span class="nm">Pull-out desks</span><span class="st"></span></button>
+      <button class="rowbtn" data-rig="tv" data-label="TV"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tv"/></svg><span class="nm">TV</span><span class="st"></span></button>
+      </div>
+    </section>
+
+    <section class="dpanel" data-panel="chair" hidden>
+      <div class="dcard"><h4>Massage chair</h4>
+        <div class="tiles three">
+          <button data-chair="0"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-chair"/></svg><span>Upright</span></button>
+          <button data-chair="0.45" data-ext="1"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-leg"/></svg><span>Legs out</span></button>
+          <button data-chair="1"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-zero"/></svg><span>Zero gravity</span></button>
+        </div>
+        <label class="rec"><span>Recline</span><input type="range" id="recline" min="0" max="100" value="45" aria-label="Recline"></label>
+        <div class="rec-ends"><small>Upright</small><small>110&deg;</small><small>Zero-g</small></div>
+        <p class="sub">Close the pull-out desks before reclining.</p>
+      </div>
+      <div class="dcard"><h4>Leg extension</h4>
+        <button class="rowbtn" data-rig="legext" data-label="Leg extension"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-leg"/></svg><span class="nm">Leg extension</span><span class="st"></span></button>
+      </div>
+    </section>
+
+    <section class="dpanel" data-panel="scene" hidden>
+      <div class="dcard"><h4>Show</h4>
+      <button class="rowbtn tog on" id="roofBtn"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-sun"/></svg><span class="nm">Roof</span><i class="sw" aria-hidden="true"></i></button>
+      <button class="rowbtn tog on" id="lightBtn"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-bulb"/></svg><span class="nm">Interior lights</span><i class="sw" aria-hidden="true"></i></button>
+      <button class="rowbtn tog" id="fxBtn"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-glow"/></svg><span class="nm">Glow effects</span><i class="sw" aria-hidden="true"></i></button>
+      <button class="rowbtn tog on" id="envBtn"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-plane"/></svg><span class="nm">Airport hall</span><i class="sw" aria-hidden="true"></i></button>
+      <button class="rowbtn tog" id="personBtn"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-person"/></svg><span class="nm">Person for scale</span><i class="sw" aria-hidden="true"></i></button>
+      </div>
+    </section>
+  </nav>
+
+  <div id="nogl" hidden>
+    <div><h2>3D isn't available on this device</h2><p>Your browser doesn't support WebGL. Try Chrome, Edge, Firefox or Safari on a recent phone or computer.</p>
+    <a class="btn" href="index.html">&larr; Back to overview</a></div>
+  </div>
+
+  <script type="module" src="js/explorer.js"></script>
+</body>
+</html>

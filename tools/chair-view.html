@@ -1,0 +1,26 @@
+<!doctype html><meta charset="utf-8"><title>chair view (dev tool)</title>
+<script type="importmap">{ "imports": { "three": "../js/vendor/three.module.js", "three/addons/": "../js/vendor/addons/" } }</script>
+<body style="margin:0;background:#d9d6cc"><canvas id="c" width="900" height="640"></canvas>
+<script type="module">
+import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { buildPod } from '../js/pod.js';
+import { SPEC as S } from '../js/spec.js';
+const q = new URLSearchParams(location.search), t = +(q.get('t') ?? 0.45), x = +(q.get('x') ?? 0), view = q.get('view') || 'side', desk = +(q.get('desk') ?? 0);
+const r = new THREE.WebGLRenderer({ canvas: document.getElementById('c'), antialias: true }); r.toneMapping = THREE.ACESFilmicToneMapping; r.shadowMap.enabled = false;
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0xd9d6cc);
+const pm = new THREE.PMREMGenerator(r); scene.environment = pm.fromScene(new RoomEnvironment(), 0.04).texture;
+const sun = new THREE.DirectionalLight(0xffffff, 1.6); sun.position.set(200, 300, 150); scene.add(sun);
+const pod = buildPod(); scene.add(pod.root);
+pod.root.traverse((o) => { if (o.isMesh && !o.name.startsWith('chair')) o.visible = false; });
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(600, 600).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0xcfcabd, roughness: 1 })); scene.add(floor);
+pod.api.setPerson(false);
+const A = pod.api; A.rigs.chair.t = A.rigs.chair.target = t; A.rigs.legext.t = A.rigs.legext.target = x; A.rigs.chair.apply(); if (desk) { A.rigs.desk.t = A.rigs.desk.target = 1; A.rigs.desk.apply(1); }
+// chair centre in world: plan (centreX, y, z) -> (x, z, -y)
+const cx = S.chair.centreX, cy = S.chair.headY + 35;
+const target = new THREE.Vector3(cx, 22, -cy);
+const cam = new THREE.PerspectiveCamera(30, 900 / 640, 1, 2000);
+const D = 230; const dirs = { side: [1, 0.12, 0], front: [0, 0.2, -1], rear: [0, 0.2, 1], iso: [0.8, 0.5, -0.8], isoR: [-0.8, 0.5, -0.8], top: [0.01, 1, 0] };
+const d = dirs[view]; const n = Math.hypot(...d); cam.position.set(target.x + D * d[0] / n, target.y + D * d[1] / n, target.z + D * d[2] / n); cam.lookAt(target);
+r.render(scene, cam); document.title = 'done';
+</script>

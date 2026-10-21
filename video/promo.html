@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tolpods promo (frame renderer)</title>
+<link rel="stylesheet" href="../css/style.css">
+<script type="importmap">{ "imports": { "three": "../js/vendor/three.module.js", "three/addons/": "../js/vendor/addons/" } }</script>
+<style>
+  html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #ebe6dc; }
+  #stage { position: fixed; inset: 0; } #c { width: 100%; height: 100%; display: block; }
+  .ov { position: fixed; inset: 0; pointer-events: none; }
+  #dip { background: #ebe6dc; opacity: 0; }
+  .card { display: grid; place-content: center; text-align: center; background: #ebe6dc; opacity: 0; color: #232b1f; }
+  .card .logo { font: 700 clamp(48px, 9vw, 150px)/1 "DM Sans", sans-serif; letter-spacing: .14em; margin-left: .14em; }
+  .card .tag { font: italic 400 clamp(26px, 3.6vw, 64px)/1.2 "Instrument Serif", serif; color: #987347; margin-top: .5em; }
+  .card .cta { display: inline-block; margin: 1.4em auto 0; padding: .55em 1.6em; border-radius: 999px; background: #5f7a56; color: #f6f2e9; font: 500 clamp(16px, 1.8vw, 32px) "DM Sans", sans-serif; letter-spacing: .04em; }
+  .card .sm { font: 400 clamp(11px, 1.05vw, 19px) "DM Mono", monospace; letter-spacing: .2em; text-transform: uppercase; color: #5f7a56; margin-top: 1.6em; }
+  #cap { left: 4.2vw; bottom: 7vh; top: auto; right: auto; opacity: 0; max-width: 46vw; }
+  #cap .eb { font: 500 clamp(11px, 1.05vw, 19px) "DM Mono", monospace; letter-spacing: .22em; text-transform: uppercase; color: #f6f2e9; background: #5f7a56; display: inline-block; padding: .45em .9em; border-radius: 999px; }
+  #cap .ln { margin-top: .6em; font: italic 400 clamp(28px, 3.5vw, 66px)/1.12 "Instrument Serif", serif; color: #fff; text-shadow: 0 2px 18px rgba(20,24,18,.65), 0 0 2px rgba(20,24,18,.5); }
+  #vig { background: radial-gradient(ellipse at 50% 55%, transparent 55%, rgba(30,26,20,.22)); }
+</style>
+</head>
+<body>
+<div id="stage"><canvas id="c"></canvas></div>
+<div class="ov" id="vig"></div>
+<div class="ov" id="cap"><div class="eb" id="capE"></div><div class="ln" id="capL"></div></div>
+<div class="ov" id="dip"></div>
+<div class="ov card" id="intro"><div><div class="logo">TOLPODS</div><div class="tag">rest &middot; recharge</div></div></div>
+<div class="ov card" id="outro"><div><div class="logo">TOLPODS</div><div class="tag">rest &middot; recharge</div><div class="cta">Reserve a pod</div><div class="sm">Private rest pods for busy terminals</div></div></div>
+<script type="module" src="promo.js"></script>
+</body>
+</html>
